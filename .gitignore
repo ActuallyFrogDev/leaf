@@ -1,2 +1,2 @@
-/web/storage/public/*
-/web/storage/submissions/*
+/web/storage/
+/web/__pycache__
