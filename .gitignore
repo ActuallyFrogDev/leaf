@@ -2,3 +2,6 @@
 /web/__pycache__
 /web/data/
 /web/static/images/profiles/
+test_leaf_parser
+leaf
+build/

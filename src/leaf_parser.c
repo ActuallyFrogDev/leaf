@@ -1,10 +1,10 @@
+#define _POSIX_C_SOURCE 200809L
 #include "leaf_parser.h"
 
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 
 // helpers
 static char *xstrdup(const char *s) {
@@ -41,14 +41,35 @@ static char *unquote_and_unescape(const char *src) {
         size_t len = 0;
         while (*s) {
             if (*s == '\\' && (s[1] == '\\' || s[1] == '"')) {
-                if (len + 1 >= cap) { cap *= 2; out = realloc(out, cap); }
+                if (len + 1 >= cap) {
+                    cap *= 2;
+                    char *tmp = realloc(out, cap);
+                    if (!tmp) {
+                        free(out);
+                        return NULL;
+                    }
+                    out = tmp;
+                }
                 out[len++] = s[1];
                 s += 2;
                 continue;
             }
             if (*s == '"') break;
-            if (len + 1 >= cap) { cap *= 2; out = realloc(out, cap); }
+            if (len + 1 >= cap) {
+                cap *= 2;
+                char *tmp = realloc(out, cap);
+                if (!tmp) {
+                    free(out);
+                    return NULL;
+                }
+                out = tmp;
+            }
             out[len++] = *s++;
+        }
+        // Check for malformed quoted value (missing closing quote)
+        if (*s != '"') {
+            free(out);
+            return NULL;
         }
         out[len] = '\0';
         return out;
