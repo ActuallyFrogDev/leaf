@@ -41,7 +41,6 @@ static int parse_args(int argc, char **argv, Options *opts) {
 	}
 	memset(opts, 0, sizeof(*opts));
 
-	// Handle global version flag
 	if (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--version") == 0) {
 		opts->version = 1;
 		return 0;
