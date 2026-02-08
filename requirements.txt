@@ -1,4 +1,4 @@
-flask
-flask-wtf
-wtforms
-werkzeug
+flask>=2.0.0,<4.0.0
+flask-wtf>=1.0.0,<2.0.0
+wtforms>=3.0.0,<4.0.0
+werkzeug>=2.0.0,<4.0.0
