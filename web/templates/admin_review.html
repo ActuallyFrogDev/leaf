@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>leaf: Admin Review</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='images/logo.png') }}"
+      type="image/png"
+    />
+  </head>
+  <body class="bg">
+    <header class="site-header">
+      <div class="container">
+        <a href="/" class="brand">
+          <img
+            src="{{ url_for('static', filename='images/logo.png') }}"
+            class="logo"
+          />leaf
+        </a>
+        <nav class="nav">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/upload" class="nav-link primary-nav">Upload</a>
+          {% if session.get('role') in ['admin','owner'] %}
+          <a href="{{ url_for('admin_review') }}" class="nav-link">Review</a>
+          {% endif %} {% if session.get('user') %}
+          <a
+            href="{{ url_for('user_profile', username=session.get('user')) }}"
+            class="nav-link nameplate"
+          >
+            {% if current_avatar_url %}
+            <img src="{{ current_avatar_url }}" alt="avatar" class="pfp" />
+            {% endif %}
+            <span class="name">Hi, {{ session.get('user') }}</span>
+            {% if session.get('role') in ['admin','owner'] %}
+            <span class="badge">{{ session.get('role')|capitalize }}</span>
+            {% endif %}
+          </a>
+          <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+          {% else %}
+          <a href="{{ url_for('login') }}" class="nav-link">Login</a>
+          <a href="{{ url_for('signup') }}" class="nav-link">Sign Up</a>
+          {% endif %}
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section
+        class="form-card fancy-card fade-in"
+        style="
+          display: grid;
+          grid-template-columns: 280px 1fr;
+          gap: 18px;
+          align-items: start;
+        "
+      >
+        <aside
+          style="
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            padding-right: 12px;
+            max-height: 60vh;
+            overflow: auto;
+          "
+        >
+          <h4 style="margin-top: 6px">Pending</h4>
+          {% if pending %}
+          <ul class="muted" style="list-style: none; padding-left: 0">
+            {% for p in pending %}
+            <li style="margin-bottom: 6px">
+              <a
+                class="muted"
+                href="{{ url_for('admin_review', u=p['username'], f=p['filename']) }}"
+                >{{ p['username'] }}/{{ p['filename'] }}</a
+              >
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="muted">No pending submissions.</div>
+          {% endif %}
+        </aside>
+
+        <div style="flex: 1">
+          <h3 style="margin-top: 0">Review</h3>
+          {% if sel_user and sel_file %}
+          <div class="muted" style="margin-bottom: 8px">
+            {{ sel_user }}/{{ sel_file }}
+          </div>
+          <pre
+            style="
+              white-space: pre-wrap;
+              background: rgba(255, 255, 255, 0.03);
+              padding: 12px;
+              border-radius: 8px;
+              border: 1px solid rgba(255, 255, 255, 0.06);
+              max-height: 60vh;
+              overflow: auto;
+            "
+          >
+{{ sel_content|default('(no content)') }}</pre
+          >
+          <div class="form-actions" style="margin-top: 12px">
+            <form
+              method="POST"
+              action="{{ url_for('admin_accept') }}"
+              style="display: inline"
+            >
+              <input type="hidden" name="username" value="{{ sel_user }}" />
+              <input type="hidden" name="filename" value="{{ sel_file }}" />
+              <button class="btn primary" type="submit">Accept</button>
+            </form>
+            <form
+              method="POST"
+              action="{{ url_for('admin_deny') }}"
+              style="display: inline"
+            >
+              <input type="hidden" name="username" value="{{ sel_user }}" />
+              <input type="hidden" name="filename" value="{{ sel_file }}" />
+              <button class="btn ghost" type="submit">Deny</button>
+            </form>
+          </div>
+          {% else %}
+          <div class="muted">Select a submission from the left to review.</div>
+          {% endif %}
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

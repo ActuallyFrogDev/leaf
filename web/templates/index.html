@@ -31,12 +31,22 @@
         <nav class="nav">
           <a href="/" class="nav-link">Home</a>
           <a href="/upload" class="nav-link primary-nav">Upload</a>
-          {% if session.get('user') %}
+          {% if session.get('role') in ['admin','owner'] %}
+          <a href="{{ url_for('admin_review') }}" class="nav-link">Review</a>
+          {% endif %} {% if session.get('user') %}
           <a
             href="{{ url_for('user_profile', username=session.get('user')) }}"
-            class="nav-link"
-            >Hi, {{ session.get('user') }}</a
+            class="nav-link nameplate"
+            title="View profile"
           >
+            {% if current_avatar_url %}
+            <img src="{{ current_avatar_url }}" alt="avatar" class="pfp" />
+            {% endif %}
+            <span class="name">Hi, {{ session.get('user') }}</span>
+            {% if session.get('role') in ['admin','owner'] %}
+            <span class="badge">{{ session.get('role')|capitalize }}</span>
+            {% endif %}
+          </a>
           <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
           {% else %}
           <a href="{{ url_for('login') }}" class="nav-link">Login</a>

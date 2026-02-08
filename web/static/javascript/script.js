@@ -18,17 +18,33 @@ document.addEventListener("DOMContentLoaded", function () {
   // drag-and-drop handling for .drop-zone
   document.querySelectorAll(".drop-zone").forEach(function (dz) {
     const input = dz.querySelector(".input-file");
-    // click anywhere on zone to open file picker
-    dz.addEventListener("click", function (e) {
-      // only respond to primary button
-      if (e.button && e.button !== 0) return;
-      // if the user clicked the native input element itself, let it handle the picker
-      if (e.target === input || e.target.closest(".input-file")) return;
-      // otherwise prevent default and open the picker programmatically once
-      e.preventDefault();
-      e.stopPropagation();
-      if (input) input.click();
-    });
+    // attach click-to-open only to the visible label inside the drop-zone
+    // this avoids accidental opens when clicking elsewhere in the zone
+    const labelEl = dz.querySelector(".file-label");
+    if (labelEl && !dz.classList.contains("drag-only")) {
+      // make label keyboard-focusable for accessibility
+      try {
+        labelEl.tabIndex = 0;
+      } catch (err) {}
+      labelEl.addEventListener("click", function (e) {
+        if (e.button && e.button !== 0) return;
+        if (e.target === input || e.target.closest(".input-file")) return;
+        if (window.__leaf_filepicker_open) return;
+        window.__leaf_filepicker_open = true;
+        setTimeout(function () {
+          window.__leaf_filepicker_open = false;
+        }, 700);
+        e.preventDefault();
+        e.stopPropagation();
+        if (input) input.click();
+      });
+      labelEl.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          labelEl.click();
+        }
+      });
+    }
 
     function prevent(e) {
       e.preventDefault();

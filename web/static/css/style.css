@@ -77,6 +77,25 @@ body {
   opacity: 0;
   transform: translateY(6px);
 }
+.nameplate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.nameplate .pfp {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.nameplate .badge {
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
 .nav a:hover {
   transform: translateY(-3px);
   background: rgba(255, 255, 255, 0.02);

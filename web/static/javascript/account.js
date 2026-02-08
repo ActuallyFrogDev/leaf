@@ -139,4 +139,60 @@ document.addEventListener("DOMContentLoaded", function () {
       el.classList.remove("auth-hover");
     });
   });
+
+  // Profile edit UI: toggle edit panel, drag-and-drop avatar input, and submit cookie update
+  const editBtn = document.getElementById("edit-profile-btn");
+  const editPanel = document.getElementById("profile-edit-panel");
+  const cancelBtn = document.getElementById("cancel-edit-btn");
+  if (editBtn && editPanel) {
+    editBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      editPanel.style.display =
+        editPanel.style.display === "none" ? "block" : "none";
+      if (editPanel.style.display === "block") {
+        const first = editPanel.querySelector('input[name="new_username"]');
+        if (first) first.focus();
+      }
+    });
+  }
+  if (cancelBtn && editPanel) {
+    cancelBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      editPanel.style.display = "none";
+    });
+  }
+
+  const avatarInput = document.getElementById("avatar-input");
+  const avatarChooseBtn = document.getElementById("avatar-choose-btn");
+  const avatarFileLabel = document.getElementById("avatar-file-label");
+  if (avatarChooseBtn && avatarInput) {
+    avatarChooseBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      if (window.__leaf_filepicker_open) return;
+      window.__leaf_filepicker_open = true;
+      setTimeout(function () {
+        window.__leaf_filepicker_open = false;
+      }, 700);
+      avatarInput.click();
+    });
+    avatarInput.addEventListener("change", function () {
+      const f = avatarInput.files && avatarInput.files[0];
+      if (f && avatarFileLabel) avatarFileLabel.textContent = f.name;
+    });
+  }
+
+  // ensure submit updates cookie for username change
+  const editForm = editPanel && editPanel.querySelector("form");
+  if (editForm) {
+    editForm.addEventListener("submit", function (e) {
+      const nu =
+        (editForm.querySelector('input[name="new_username"]') || {}).value ||
+        "";
+      if (nu.trim()) {
+        try {
+          setCookie("leaf_username", nu.trim(), 365);
+        } catch (err) {}
+      }
+    });
+  }
 });

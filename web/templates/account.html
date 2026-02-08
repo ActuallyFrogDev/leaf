@@ -8,6 +8,14 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/style.css') }}"
     />
+    <script
+      src="{{ url_for('static', filename='javascript/script.js') }}"
+      defer
+    ></script>
+    <script
+      src="{{ url_for('static', filename='javascript/account.js') }}"
+      defer
+    ></script>
   </head>
   <body class="bg">
     <header class="site-header">
@@ -21,12 +29,21 @@
         <nav class="nav">
           <a href="/" class="nav-link">Home</a>
           <a href="/upload" class="nav-link primary-nav">Upload</a>
-          {% if session.get('user') %}
+          {% if session.get('role') in ['admin','owner'] %}
+          <a href="{{ url_for('admin_review') }}" class="nav-link">Review</a>
+          {% endif %} {% if session.get('user') %}
           <a
             href="{{ url_for('user_profile', username=session.get('user')) }}"
-            class="nav-link"
-            >Hi, {{ session.get('user') }}</a
+            class="nav-link nameplate"
           >
+            {% if current_avatar_url %}
+            <img src="{{ current_avatar_url }}" alt="avatar" class="pfp" />
+            {% endif %}
+            <span class="name">Hi, {{ session.get('user') }}</span>
+            {% if session.get('role') in ['admin','owner'] %}
+            <span class="badge">{{ session.get('role')|capitalize }}</span>
+            {% endif %}
+          </a>
           <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
           {% else %}
           <a href="{{ url_for('login') }}" class="nav-link">Login</a>
@@ -38,36 +55,129 @@
 
     <main class="container">
       <section class="form-card fancy-card fade-in">
-        <div style="display: flex; align-items: center; gap: 18px">
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+          "
+        >
           <img
             src="{{ profile_url }}"
-            alt="profile"
-            style="
-              width: 96px;
-              height: 96px;
-              border-radius: 12px;
-              object-fit: cover;
-              border: 1px solid rgba(255, 255, 255, 0.04);
-            "
+            alt="profile avatar"
+            class="pfp"
+            style="width: 48px; height: 48px; border-radius: 50%"
           />
-          <div>
-            <h2 style="margin: 0">{{ username }}</h2>
-            <div class="muted">Member</div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <h3 style="margin: 0">{{ username }}</h3>
+            {% if role in ['admin','owner'] %}
+            <span class="badge">{{ role|capitalize }}</span>
+            {% endif %}
           </div>
         </div>
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+          "
+        >
+          <div>
+            <h4 style="margin: 6px 0 8px 0">About</h4>
+            <div class="muted" id="profile-bio">{{ bio|default('') }}</div>
+          </div>
+          {% if session.get('user') and session.get('user') == username %}
+          <div>
+            <button id="edit-profile-btn" class="btn ghost">
+              Edit Profile
+            </button>
+          </div>
+          {% endif %}
+        </div>
 
-        <hr style="margin: 18px 0; border-color: rgba(255, 255, 255, 0.03)" />
+        {% if session.get('user') and session.get('user') == username %}
+        <div id="profile-edit-panel" style="display: none; margin-top: 12px">
+          <form
+            method="POST"
+            action="{{ url_for('edit_profile', username=username) }}"
+            enctype="multipart/form-data"
+          >
+            <div style="display: flex; gap: 12px; align-items: center">
+              <button id="avatar-choose-btn" class="btn">
+                Choose profile image
+              </button>
+              <div class="muted" id="avatar-file-label">No file chosen</div>
+              <input
+                id="avatar-input"
+                class="input-file"
+                type="file"
+                name="avatar"
+                accept="image/png,image/jpeg"
+                style="display: none"
+              />
+            </div>
+
+            <label class="placeholder-input">
+              <input
+                name="new_username"
+                placeholder="Change username"
+                value="{{ username }}"
+                style="
+                  width: 100%;
+                  border: none;
+                  background: transparent;
+                  color: var(--card);
+                "
+              />
+            </label>
+
+            <label class="placeholder-input">
+              <textarea
+                name="bio"
+                placeholder="Write a short bio about yourself"
+                rows="4"
+                style="
+                  width: 100%;
+                  border: none;
+                  background: transparent;
+                  color: var(--card);
+                "
+              >
+{{ bio|e }}</textarea
+              >
+            </label>
+
+            <div class="form-actions">
+              <button class="btn primary" type="submit">Save Changes</button>
+              <button id="cancel-edit-btn" type="button" class="btn ghost">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+        {% endif %}
 
         <h3>Submitted packages</h3>
         {% if packages %}
         <ul class="muted">
           {% for p in packages %}
-          <li>
+          <li style="display: flex; align-items: center; gap: 10px">
             <a
               href="{{ url_for('user_file_download', username=username, filename=p) }}"
               class="muted"
               >{{ p }}</a
             >
+            {% if session.get('role') in ['admin','owner'] %}
+            <form
+              style="display: inline"
+              method="POST"
+              action="{{ url_for('delete_user_file', username=username, filename=p) }}"
+            >
+              <button class="btn ghost" type="submit">Delete</button>
+            </form>
+            {% endif %}
           </li>
           {% endfor %}
         </ul>
