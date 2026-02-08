@@ -449,9 +449,12 @@ def admin_deny():
 
 @app.route('/users/<username>/delete/<path:filename>', methods=['POST'])
 def delete_user_file(username, filename):
-    # only allow deletion of .leaf files within the user's submissions directory
+    # Allow admin/owner to delete a user's published .leaf from public namespace
     if not allowed_file(filename):
         abort(400)
+    # ensure target user exists
+    if not get_user_by_username(username):
+        abort(404)
     actor = session.get('user')
     actor_role = (session.get('role') or 'member').lower()
     if not actor:
@@ -459,7 +462,7 @@ def delete_user_file(username, filename):
     # only admin/owner may delete packages (any user's)
     if actor_role not in ('admin', 'owner'):
         abort(403)
-    user_dir = os.path.join(SUBMISSIONS_DIR, username)
+    user_dir = os.path.join(PUBLIC_DIR, username)
     requested_path = os.path.normpath(os.path.join(user_dir, filename))
     try:
         common = os.path.commonpath([user_dir, requested_path])
