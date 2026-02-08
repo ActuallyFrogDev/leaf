@@ -30,6 +30,13 @@
         </a>
         <nav class="nav">
           <a href="/" class="nav-link">Home</a>
+          <form
+            action="{{ url_for('search') }}"
+            method="GET"
+            class="nav-search"
+          >
+            <input type="text" name="q" placeholder="Search..." />
+          </form>
           <a href="/upload" class="nav-link primary-nav">Upload</a>
           {% if session.get('role') in ['admin','owner'] %}
           <a href="{{ url_for('admin_review') }}" class="nav-link">Review</a>

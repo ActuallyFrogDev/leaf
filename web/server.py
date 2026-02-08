@@ -134,6 +134,53 @@ def create_user(username, password):
     except Exception:
         return False
 
+def search_users(query, limit=20):
+    """Search users by username prefix/substring. Returns list of user dicts."""
+    if not query or not query.strip():
+        return []
+    q = query.strip()
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    # Case-insensitive LIKE search
+    c.execute(
+        'SELECT id, username, bio, role FROM users WHERE username LIKE ? LIMIT ?',
+        (f'%{q}%', limit)
+    )
+    rows = c.fetchall()
+    conn.close()
+    results = []
+    for row in rows:
+        results.append({
+            'id': row[0],
+            'username': row[1],
+            'bio': row[2] or '',
+            'role': (row[3] or 'member').lower()
+        })
+    return results
+
+def search_packages(query, limit=20):
+    """Search packages by filename in public directory. Returns list of package dicts."""
+    if not query or not query.strip():
+        return []
+    q = query.strip().lower()
+    results = []
+    if not os.path.isdir(PUBLIC_DIR):
+        return results
+    for username in os.listdir(PUBLIC_DIR):
+        user_dir = os.path.join(PUBLIC_DIR, username)
+        if not os.path.isdir(user_dir):
+            continue
+        for fn in os.listdir(user_dir):
+            if allowed_file(fn) and q in fn.lower():
+                results.append({
+                    'filename': fn,
+                    'username': username,
+                    'name': fn.rsplit('.', 1)[0]  # name without extension
+                })
+                if len(results) >= limit:
+                    return results
+    return results
+
 init_db()
 # -----------------------------------------------------------------------------------------------------
 
@@ -185,6 +232,31 @@ def index():
 @app.route('/home')
 def home_redirect():
     return render_template('index.html')
+
+
+@app.route('/search')
+def search():
+    q = request.args.get('q', '').strip()
+    users = []
+    packages = []
+    if q:
+        users = search_users(q)
+        packages = search_packages(q)
+        # resolve avatar URLs for each user result
+        profiles_dir = os.path.join(BASE_DIR, 'static', 'images', 'profiles')
+        for u in users:
+            avatar_url = url_for('static', filename='images/defaultprofilepicture.jpg')
+            for ext in AVATAR_EXTS:
+                candidate = os.path.join(profiles_dir, f"{u['username']}{ext}")
+                if os.path.isfile(candidate):
+                    try:
+                        mtime = int(os.path.getmtime(candidate))
+                    except Exception:
+                        mtime = 0
+                    avatar_url = url_for('static', filename=f"images/profiles/{u['username']}{ext}", v=mtime)
+                    break
+            u['avatar_url'] = avatar_url
+    return render_template('search.html', query=q, users=users, packages=packages)
 
 
 @app.route('/upload', methods=['GET', 'POST'])

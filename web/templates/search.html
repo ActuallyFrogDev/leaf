@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>leaf: search</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='images/logo.png') }}"
+      type="image/png"
+    />
+    <script
+      src="{{ url_for('static', filename='javascript/script.js') }}"
+      defer
+    ></script>
+  </head>
+  <body class="bg">
+        <header class="site-header">
+      <div class="container">
+        <a href="/" class="brand">
+          <img
+            src="{{ url_for('static', filename='images/logo.png') }}"
+            alt="leaf logo"
+            class="logo"
+          />leaf
+        </a>
+        <nav class="nav">
+          <a href="/" class="nav-link">Home</a>
+          <form
+            action="{{ url_for('search') }}"
+            method="GET"
+            class="nav-search"
+          >
+            <input type="text" name="q" placeholder="Search..." value="{{ query }}" />
+          </form>
+          <a href="/upload" class="nav-link primary-nav">Upload</a>
+          {% if session.get('role') in ['admin','owner'] %}
+          <a href="{{ url_for('admin_review') }}" class="nav-link">Review</a>
+          {% endif %} {% if session.get('user') %}
+          <a
+            href="{{ url_for('user_profile', username=session.get('user')) }}"
+            class="nav-link nameplate"
+            title="View profile"
+          >
+            {% if current_avatar_url %}
+            <img src="{{ current_avatar_url }}" alt="avatar" class="pfp" />
+            {% endif %}
+            <span class="name">Hi, {{ session.get('user') }}</span>
+            {% if session.get('role') in ['admin','owner'] %}
+            <span class="badge">{{ session.get('role')|capitalize }}</span>
+            {% endif %}
+          </a>
+          <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+          {% else %}
+          <a href="{{ url_for('login') }}" class="nav-link">Login</a>
+          <a href="{{ url_for('signup') }}" class="nav-link">Sign Up</a>
+          {% endif %}
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="form-card fancy-card fade-in">
+        {% if query %}
+        <h2>Results for "{{ query }}"</h2>
+
+        <!-- Users Section -->
+        <h3 style="margin-top: 20px; margin-bottom: 12px; color: var(--card);">Users</h3>
+        {% if users %}
+        <ul style="list-style: none; padding: 0; margin: 0 0 24px 0">
+          {% for user in users %}
+          <li style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <img
+              src="{{ user.avatar_url }}"
+              alt="avatar"
+              class="pfp"
+              style="width: 40px; height: 40px; border-radius: 50%"
+            />
+            <div style="flex: 1">
+              <a
+                href="{{ url_for('user_profile', username=user.username) }}"
+                style="color: var(--card); text-decoration: none; font-weight: 500;"
+              >
+                {{ user.username }}
+              </a>
+              {% if user.role in ['admin','owner'] %}
+              <span class="badge" style="margin-left: 6px">{{ user.role|capitalize }}</span>
+              {% endif %}
+              {% if user.bio %}
+              <div class="muted" style="font-size: 0.9em; margin-top: 4px">
+                {{ user.bio[:100] }}{% if user.bio|length > 100 %}...{% endif %}
+              </div>
+              {% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="muted" style="margin-bottom: 24px;">No users found.</div>
+        {% endif %}
+
+        <!-- Packages Section -->
+        <h3 style="margin-bottom: 12px; color: var(--card);">Packages</h3>
+        {% if packages %}
+        <ul style="list-style: none; padding: 0; margin: 0">
+          {% for pkg in packages %}
+          <li style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <div style="width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, rgba(34, 193, 195, 0.2), rgba(59, 130, 246, 0.2)); display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 18px;">📦</span>
+            </div>
+            <div style="flex: 1">
+              <a
+                href="{{ url_for('user_file_download', username=pkg.username, filename=pkg.filename) }}"
+                style="color: var(--card); text-decoration: none; font-weight: 500;"
+              >
+                {{ pkg.name }}
+              </a>
+              <div class="muted" style="font-size: 0.9em; margin-top: 4px">
+                by <a href="{{ url_for('user_profile', username=pkg.username) }}" style="color: var(--muted);">{{ pkg.username }}</a>
+              </div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="muted">No packages found.</div>
+        {% endif %}
+
+        {% else %}
+        <h2>Search</h2>
+        <div class="muted">Use the search bar above to find users and packages.</div>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>
