@@ -1,18 +1,125 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>leaf: upload</title>
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='images/logo.png') }}"
+      type="image/png"
+    />
+    <script
+      src="{{ url_for('static', filename='javascript/script.js') }}"
+      defer
+    ></script>
+  </head>
+  <body class="bg">
+    <header class="site-header">
+      <div class="container">
+        <a href="/" class="brand">
+          <img
+            src="{{ url_for('static', filename='images/logo.png') }}"
+            alt="leaf logo"
+            class="logo"
+          />leaf
+        </a>
+        <nav class="nav">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/upload" class="nav-link primary-nav">Upload</a>
+        </nav>
+      </div>
+    </header>
 
-    <h1>Upload File</h1>
-    <form method="POST" enctype="multipart/form-data">
-        {{form.hidden_tag()}}
-        {{form.file()}}
-        {{form.submit}}
-    </form>
-    
-</body>
+    <main class="container">
+      <div class="top-actions" style="margin-bottom: 18px">
+        <a class="btn ghost" href="/example">View example .leaf</a>
+      </div>
+
+      <section class="form-card fancy-card fade-in">
+        <div class="card-visuals">
+          <div class="floater floater-1" aria-hidden></div>
+          <div class="floater floater-2" aria-hidden></div>
+          <div class="floater floater-3" aria-hidden></div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-left">
+            <h2 class="float-up">
+              Upload a <span class="accent">.leaf</span> file
+            </h2>
+            <p class="muted">
+              Only <strong>.leaf</strong> files are accepted. Files are saved to
+              submissions for review.
+            </p>
+
+            <form
+              id="upload-form"
+              method="POST"
+              enctype="multipart/form-data"
+              class="upload-form"
+              action="/upload"
+            >
+              {{ form.hidden_tag() }}
+
+              <div
+                class="file-input drop-zone"
+                aria-label="Drop .leaf file here"
+              >
+                <span class="file-label">Choose or drop a .leaf file</span>
+                <span class="drop-hint muted"
+                  >Drop file here or click to browse</span
+                >
+                {{ form.file(class_='input-file') }}
+              </div>
+
+              <div id="upload-preview" class="upload-preview" aria-hidden>
+                <div class="filename muted" id="preview-name">
+                  No file selected
+                </div>
+                <div class="progress">
+                  <div
+                    class="progress-bar"
+                    id="upload-progress-bar"
+                    style="width: 0%"
+                  ></div>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button id="submit-btn" class="btn primary" type="submit">
+                  Upload
+                </button>
+              </div>
+            </form>
+
+            <p class="placeholder">
+              Tip: drag & drop a file or click the zone. Submissions are
+              reviewed manually.
+            </p>
+          </div>
+
+          <aside class="form-right">
+            <div class="card-note">
+              <strong>Quick Preview</strong>
+              <p class="muted">
+                Selected file name and upload progress show here. The UI will
+                animate during upload.
+              </p>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <small>This site is open source and free to distribute and share.</small>
+      </div>
+    </footer>
+  </body>
 </html>

@@ -1,11 +1,87 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>leaf: home</title>
-</head>
-<body>
-    
-</body>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='images/logo.png') }}"
+      type="image/png"
+    />
+    <script
+      src="{{ url_for('static', filename='javascript/script.js') }}"
+      defer
+    ></script>
+  </head>
+  <body class="bg">
+    <header class="site-header">
+      <div class="container">
+        <a href="/" class="brand">
+          <img
+            src="{{ url_for('static', filename='images/logo.png') }}"
+            alt="leaf logo"
+            class="logo"
+          />leaf
+        </a>
+        <nav class="nav">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/upload" class="nav-link primary-nav">Upload</a>
+          <!-- Sample link removed from homepage per request -->
+        </nav>
+      </div>
+    </header>
+
+    <main class="container hero">
+      <section class="hero-card fancy-card fade-in">
+        <div class="card-visuals">
+          <div class="floater floater-1" aria-hidden></div>
+          <div class="floater floater-2" aria-hidden></div>
+        </div>
+        <h2 class="hero-title">Leaf: Package Manager</h2>
+        <p class="lead">
+          Leaf is a Linux tool that allows you to upload and download packages
+          with ease.
+        </p>
+        <div class="actions">
+          <a class="btn primary" href="/upload">Upload a .leaf</a>
+        </div>
+      </section>
+
+      <section class="features">
+        <div class="feature-card float-up">
+          <h3>Secure Downloads</h3>
+          <p>
+            .leaf files that are uploaded are scanned and reviewed by moderators
+            to confirm that they are safe for download.
+          </p>
+        </div>
+        <div class="feature-card float-up delay">
+          <h3>Fast Uploads</h3>
+          <p>
+            Upload your manifests quickly; access them via predictable URLs.
+          </p>
+        </div>
+        <div class="feature-card float-up delay-2">
+          <h3>Lightweight</h3>
+          <p>
+            Clean CLI for easy downloads from the comfort of your Linux
+            terminal.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <small
+          >This site is open source and free to distribute and share.</small
+        >
+      </div>
+    </footer>
+  </body>
 </html>

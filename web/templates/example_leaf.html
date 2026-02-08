@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>leaf: example .leaf</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='images/logo.png') }}"
+      type="image/png"
+    />
+    <script
+      src="{{ url_for('static', filename='javascript/script.js') }}"
+      defer
+    ></script>
+  </head>
+  <body class="bg">
+    <header class="site-header">
+      <div class="container">
+        <a href="/" class="brand">
+          <img
+            src="{{ url_for('static', filename='images/logo.png') }}"
+            alt="leaf logo"
+            class="logo"
+          />leaf
+        </a>
+        <nav class="nav">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/upload" class="nav-link primary-nav">Upload</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="ide-card fancy-card fade-in">
+        <div class="card-visuals">
+          <div class="floater floater-2" aria-hidden></div>
+        </div>
+        <div class="ide-toolbar">
+          <div class="ide-tabs">
+            <span class="tab active">example.leaf</span>
+          </div>
+          <div class="ide-actions">
+            <a class="btn ghost" href="/example/download">Download</a>
+          </div>
+        </div>
+
+        <div class="ide">
+          <div class="line-numbers" aria-hidden></div>
+          <div class="editor" contenteditable="false">
+            <pre><code id="leaf-code">{{ code|e }}</code></pre>
+          </div>
+        </div>
+
+        <p class="placeholder muted">
+          Placeholder: Replace this example content with a real .leaf manifest.
+        </p>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <small>This site is open source and free to distribute and share.</small>
+      </div>
+    </footer>
+  </body>
+</html>

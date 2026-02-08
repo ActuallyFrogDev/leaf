@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 Not found</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='images/logo.png') }}"
+      type="image/png"
+    />
+  </head>
+  <body class="bg">
+    <header class="site-header">
+      <div class="container">
+        <a href="/" class="brand">
+          <img
+            src="{{ url_for('static', filename='images/logo.png') }}"
+            alt="leaf logo"
+            class="logo"
+          />leaf
+        </a>
+        <nav class="nav">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/upload" class="nav-link primary-nav">Upload</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="notice-card fancy-card fade-in">
+        <div class="card-visuals">
+          <div class="floater floater-3" aria-hidden></div>
+        </div>
+        <h2>Error 404 — Not Found</h2>
+        <p class="muted">The page or file you requested was not found.</p>
+        <a class="btn ghost" href="/">Return Home</a>
+      </section>
+    </main>
+  </body>
+</html>

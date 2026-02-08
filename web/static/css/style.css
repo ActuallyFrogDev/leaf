@@ -1,0 +1,703 @@
+:root {
+  --bg-1: #0f1724;
+  --bg-2: #0b2a3a;
+  --card: #ffffff;
+  --muted: #94a3b8;
+  --accent: #22c1c3;
+  --accent-2: #3b82f6;
+  --glass: rgba(255, 255, 255, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family:
+    Inter,
+    Segoe UI,
+    Roboto,
+    Arial,
+    sans-serif;
+  color: var(--card);
+  background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+}
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.site-header {
+  backdrop-filter: blur(6px);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03), transparent);
+  padding: 12px 0;
+}
+.site-header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--card);
+  text-decoration: none;
+}
+.logo {
+  height: 36px;
+  width: auto;
+  border-radius: 6px;
+  box-shadow: 0 4px 18px rgba(2, 6, 23, 0.5);
+}
+.nav {
+  float: none;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.nav a {
+  color: var(--card);
+  text-decoration: none;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    background 220ms ease,
+    box-shadow 220ms ease,
+    opacity 220ms ease;
+  /* start slightly invisible and slide up when JS triggers */
+  opacity: 0;
+  transform: translateY(6px);
+}
+.nav a:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: 0 8px 20px rgba(2, 6, 23, 0.12);
+}
+.nav a.nav-in {
+  opacity: 0.95;
+  transform: none;
+}
+.nav a.primary-nav {
+  background: linear-gradient(
+    90deg,
+    rgba(34, 193, 195, 0.14),
+    rgba(59, 130, 246, 0.08)
+  );
+}
+.nav a .nav-icon {
+  margin-right: 8px;
+  opacity: 0.9;
+}
+
+.hero {
+  padding: 48px 0;
+}
+.hero-card {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.02)
+  );
+  padding: 28px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(2, 6, 23, 0.6);
+}
+.hero-title {
+  margin: 0 0 8px 0;
+}
+.lead {
+  color: var(--muted);
+  margin-top: 0;
+}
+.actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.btn {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--card);
+  font-weight: 600;
+}
+.btn {
+  line-height: 1;
+}
+.btn {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    box-shadow 220ms ease,
+    opacity 220ms ease;
+}
+.btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(34, 193, 195, 0.08);
+  opacity: 0.98;
+}
+.btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 6px 18px rgba(34, 193, 195, 0.06);
+}
+.btn.primary {
+  background-size: 200% 200%;
+  transition: background-position 420ms ease;
+}
+.btn.primary:hover {
+  background-position: 100% 0;
+}
+
+/* ripple effect */
+.ripple {
+  position: absolute;
+  border-radius: 999px;
+  transform: scale(0);
+  background: rgba(255, 255, 255, 0.18);
+  animation: ripple 600ms ease;
+  pointer-events: none;
+}
+@keyframes ripple {
+  from {
+    transform: scale(0);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(6);
+    opacity: 0;
+  }
+}
+.btn.primary {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.18);
+}
+.btn.ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+.feature-card {
+  background: var(--glass);
+  padding: 18px;
+  border-radius: 10px;
+}
+
+.form-card,
+.notice-card {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.02)
+  );
+  padding: 22px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(2, 6, 23, 0.6);
+  margin-top: 36px;
+}
+.muted {
+  color: var(--muted);
+}
+
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.file-input {
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+}
+.input-file {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  cursor: pointer;
+  height: 100%;
+  width: 100%;
+}
+.file-label {
+  display: inline-block;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+/* drag-and-drop zone */
+.drop-zone {
+  display: block;
+  border: 2px dashed rgba(255, 255, 255, 0.06);
+  padding: 28px;
+  border-radius: 12px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.01),
+    rgba(255, 255, 255, 0.02)
+  );
+  cursor: pointer;
+  text-align: center;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+.drop-zone .file-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.drop-zone .drop-hint {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.drop-zone.dragover {
+  border-color: rgba(59, 130, 246, 0.6);
+  background: linear-gradient(
+    180deg,
+    rgba(59, 130, 246, 0.03),
+    rgba(59, 130, 246, 0.01)
+  );
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.04);
+}
+.drop-zone.ready {
+  border-color: rgba(34, 193, 195, 0.4);
+}
+
+/* fancy card and floaters for upload page */
+.fancy-card {
+  position: relative;
+  overflow: visible;
+  padding: 28px;
+}
+.card-visuals {
+  position: absolute;
+  inset: -48px -10px auto auto;
+  pointer-events: none;
+}
+.floater {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 40%;
+  filter: blur(18px);
+  opacity: 0.18;
+  transform: translateZ(0);
+}
+.floater-1 {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.9),
+    rgba(34, 197, 94, 0.9)
+  );
+  left: -40px;
+  top: -20px;
+  animation: floaty 8000ms ease-in-out infinite;
+}
+.floater-2 {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.85),
+    rgba(59, 130, 246, 0.85)
+  );
+  left: 10px;
+  top: 10px;
+  animation: floaty 10000ms ease-in-out -1200ms infinite;
+}
+.floater-3 {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.82),
+    rgba(139, 92, 246, 0.7)
+  );
+  left: 60px;
+  top: 40px;
+  animation: floaty 11000ms ease-in-out -600ms infinite;
+}
+
+@keyframes floaty {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-14px) scale(1.05);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 18px;
+  align-items: start;
+}
+.form-left {
+  z-index: 2;
+}
+.form-right {
+  z-index: 2;
+}
+
+.fancy-card .file-input.drop-zone {
+  padding: 28px;
+  border-radius: 12px;
+}
+
+.upload-preview {
+  margin-top: 12px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+.upload-preview.visible {
+  opacity: 1;
+  transform: none;
+}
+.upload-preview .filename {
+  font-weight: 600;
+}
+
+.progress {
+  background: rgba(0, 0, 0, 0.06);
+  height: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  width: 0%;
+  transition: width 180ms linear;
+}
+
+.card-note {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.accent {
+  color: var(--accent-2);
+}
+
+/* submit button micro animation */
+.btn.primary {
+  position: relative;
+  overflow: visible;
+}
+.btn.primary::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-50%) rotate(45deg);
+  border-radius: 2px;
+  transition:
+    transform 220ms ease,
+    opacity 220ms ease;
+  opacity: 0.9;
+}
+.btn.primary:active::after {
+  transform: translateY(-50%) rotate(45deg) scale(0.9);
+}
+
+/* small responsive adjustments */
+@media (max-width: 880px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .card-visuals {
+    display: none;
+  }
+}
+
+.form-actions {
+  margin-top: 8px;
+}
+
+.placeholder {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.site-footer {
+  padding: 18px 0;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 40px;
+}
+
+/* upload success page layout centering */
+body.success-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+body.success-page main.container {
+  /* take remaining space between header and footer and center */
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 24px;
+  padding-bottom: 48px;
+}
+.notice-card {
+  max-width: 760px;
+  width: 100%;
+  text-align: center;
+}
+
+.success-anim {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+/* animations */
+.fade-in {
+  animation: fadeIn 520ms ease both;
+}
+.float-up {
+  transform: translateY(8px);
+  animation: floatUp 820ms ease both;
+}
+.delay {
+  animation-delay: 120ms;
+}
+.delay-2 {
+  animation-delay: 240ms;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes floatUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* responsive */
+@media (max-width: 640px) {
+  .nav {
+    float: none;
+    text-align: right;
+  }
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .container {
+    padding: 16px;
+  }
+}
+
+/* placeholders for inputs on pages without real forms */
+.placeholder-input {
+  display: block;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+  color: var(--muted);
+}
+
+/* accessibility */
+.btn:focus {
+  outline: 2px solid rgba(34, 193, 195, 0.18);
+  outline-offset: 2px;
+}
+
+/* IDE / code viewer styles */
+.ide-card {
+  margin-top: 28px;
+}
+.ide-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px 8px 0 0;
+  background: rgba(0, 0, 0, 0.14);
+}
+.ide-tabs .tab {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-right: 6px;
+  background: transparent;
+  color: var(--card);
+  opacity: 0.9;
+}
+.ide-tabs .tab.active {
+  background: rgba(255, 255, 255, 0.03);
+}
+.ide {
+  display: flex;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+.line-numbers {
+  background: rgba(0, 0, 0, 0.04);
+  padding: 12px 10px;
+  color: var(--muted);
+  font-family:
+    ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: right;
+  user-select: none;
+}
+.editor {
+  flex: 1;
+  padding: 12px;
+  overflow: auto;
+  font-family:
+    ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  color: #dbeafe;
+}
+.editor pre {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.ide .editor code {
+  display: block;
+}
+
+/* upload success arrow animation */
+.success-anim {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 6px;
+}
+.arrow {
+  width: 64px;
+  height: 64px;
+  overflow: visible;
+  /* start in-flow; when animated it will become fixed to fly off-screen */
+  position: relative;
+}
+.arrow .arrow-shaft,
+.arrow .arrow-head {
+  stroke: var(--accent-2);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.arrow {
+  transform-origin: center;
+  opacity: 0;
+}
+.arrow.animated {
+  /* move the arrow to the viewport (fixed) so it can travel off-screen */
+  position: fixed;
+  left: 50%;
+  top: 35vh;
+  transform: translate(-50%, 0);
+  /* make visible during draw, then run blast after draw completes */
+  opacity: 1;
+  /* run the blast AFTER the stroke-draw animations finish */
+  animation: arrowBlast 2400ms cubic-bezier(0.12, 0.8, 0.25, 1) forwards;
+  animation-delay: 3200ms;
+  z-index: 9999;
+}
+.arrow .arrow-shaft {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+}
+.arrow .arrow-head {
+  stroke-dasharray: 28;
+  stroke-dashoffset: 28;
+}
+.arrow.animated .arrow-shaft {
+  animation: drawShaft 1400ms ease-out 220ms forwards;
+}
+.arrow.animated .arrow-head {
+  /* head draws after the shaft completes */
+  animation: drawHead 1000ms ease-out 1640ms forwards;
+}
+
+@keyframes drawShaft {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes drawHead {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes arrowBlast {
+  /* 0-~15%: little dip down, then settle, then blast up */
+  0% {
+    transform: translate3d(-50%, 0, 0) scale(0.98);
+    opacity: 1;
+    filter: none;
+  }
+  10% {
+    /* quick small dip down */
+    transform: translate3d(-50%, 14px, 0) scale(0.98);
+  }
+  18% {
+    /* pop back to center slightly before lift */
+    transform: translate3d(-50%, 0, 0) scale(1.02);
+  }
+  40% {
+    /* begin upwards travel */
+    transform: translate3d(-50%, -18vh, 0) scale(1.05);
+    filter: drop-shadow(0 8px 22px rgba(34, 193, 195, 0.08));
+  }
+  100% {
+    /* fly off the top of the viewport */
+    transform: translate3d(-50%, -420vh, 0) scale(1.22);
+    opacity: 0;
+    filter: blur(2px);
+  }
+}

@@ -1,5 +1,7 @@
 # leaf
 
+![Leaf logo](/web/static/images/logo.png)
+
 Leaf is a package manager for Linux that is meant to be **simple, user-friendly, and easy-to-use.**
 
 **Leaf is a WIP Project and is currently in development.**
@@ -17,5 +19,3 @@ And **boom**! No pain, no troubleshooting; Leaf installs **automatically**, you 
 ## Manual Installation
 
 This is for when you dont want to run the install script, or you have an unsupported distribution.
-
-
