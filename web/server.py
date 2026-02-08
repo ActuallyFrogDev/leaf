@@ -9,10 +9,18 @@ import sqlite3
 import uuid
 import time
 import shutil
+import logging
 from wtforms.validators import InputRequired
 
+# Configure logging
+logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'supersecretkey'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-only-change-me')
+
+# Warn if using default secret key
+if app.config['SECRET_KEY'] == 'dev-only-change-me':
+    logging.warning('WARNING: Using default SECRET_KEY. Set SECRET_KEY environment variable in production!')
 app.config['UPLOAD_FOLDER'] = 'storage/submissions'
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -622,4 +630,4 @@ def serve_install_sh():
     return send_file(script_path, mimetype='text/x-shellscript')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true')

@@ -5,3 +5,7 @@
 test_leaf_parser
 leaf
 build/
+*.o
+__pycache__/
+*.pyc
+_codeql_detected_source_root
