@@ -29,6 +29,7 @@
         </a>
         <nav class="nav">
           <a href="/" class="nav-link">Home</a>
+          <a href="{{ url_for('packages') }}" class="nav-link">Packages</a>
           <form
             action="{{ url_for('search') }}"
             method="GET"
@@ -83,8 +84,65 @@
             {% if role in ['admin','owner'] %}
             <span class="badge">{{ role|capitalize }}</span>
             {% endif %}
+            {% if ban_until and ban_until != 0 %}
+            <span class="badge" style="background: #dc2626;">
+              {% if ban_until == -1 %}Permanently Banned{% else %}Banned{% endif %}
+            </span>
+            {% endif %}
           </div>
         </div>
+
+        {% if session.get('role') in ['admin','owner'] and session.get('user') != username and role not in ['owner'] %}
+        <div style="margin-top: 16px; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+          <h4 style="margin: 0 0 12px 0;">Admin Actions</h4>
+          {% if ban_until and ban_until != 0 %}
+          <form method="POST" action="{{ url_for('ban_user_route', username=username) }}" style="display: inline;">
+            <input type="hidden" name="duration" value="0">
+            <button type="submit" class="btn ghost">Unban User</button>
+          </form>
+          <span class="muted" style="margin-left: 12px;">
+            {% if ban_until == -1 %}
+            Permanently banned
+            {% else %}
+            Banned until {{ ban_until|timestamp_to_date }}
+            {% endif %}
+          </span>
+          {% else %}
+          <button type="button" class="btn ghost" id="ban-user-btn" onclick="document.getElementById('ban-modal').style.display='flex'">Ban User</button>
+          {% endif %}
+        </div>
+
+        <div id="ban-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+          <div style="background: var(--bg); padding: 24px; border-radius: 12px; max-width: 400px; width: 90%;">
+            <h3 style="margin: 0 0 16px 0;">Ban {{ username }}</h3>
+            <p class="muted" style="margin-bottom: 16px;">Select ban duration:</p>
+            <form method="POST" action="{{ url_for('ban_user_route', username=username) }}">
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                  <input type="radio" name="duration" value="3600" checked> 1 Hour
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                  <input type="radio" name="duration" value="86400"> 1 Day
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                  <input type="radio" name="duration" value="604800"> 1 Week
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                  <input type="radio" name="duration" value="2592000"> 30 Days
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                  <input type="radio" name="duration" value="-1"> Permanent
+                </label>
+              </div>
+              <div style="display: flex; gap: 12px;">
+                <button type="submit" class="btn primary">Confirm Ban</button>
+                <button type="button" class="btn ghost" onclick="document.getElementById('ban-modal').style.display='none'">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% endif %}
+
         <div
           style="
             display: flex;
@@ -174,7 +232,7 @@
           {% for p in packages %}
           <li style="display: flex; align-items: center; gap: 10px">
             <a
-              href="{{ url_for('user_file_download', username=username, filename=p) }}"
+              href="{{ url_for('package_info', username=username, filename=p) }}"
               class="muted"
               >{{ p }}</a
             >

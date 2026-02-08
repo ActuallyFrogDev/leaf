@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>leaf: search</title>
+    <title>leaf: packages</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/style.css') }}"
@@ -19,7 +19,7 @@
     ></script>
   </head>
   <body class="bg">
-        <header class="site-header">
+    <header class="site-header">
       <div class="container">
         <a href="/" class="brand">
           <img
@@ -36,7 +36,7 @@
             method="GET"
             class="nav-search"
           >
-            <input type="text" name="q" placeholder="Search..." value="{{ query }}" />
+            <input type="text" name="q" placeholder="Search..." />
           </form>
           <a href="/upload" class="nav-link primary-nav">Upload</a>
           {% if session.get('role') in ['admin','owner'] %}
@@ -66,46 +66,27 @@
 
     <main class="container">
       <section class="form-card fancy-card fade-in">
-        {% if query %}
-        <h2>Results for "{{ query }}"</h2>
-
-        <!-- Users Section -->
-        <h3 style="margin-top: 20px; margin-bottom: 12px; color: var(--card);">Users</h3>
-        {% if users %}
-        <ul style="list-style: none; padding: 0; margin: 0 0 24px 0">
-          {% for user in users %}
-          <li style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-            <img
-              src="{{ user.avatar_url }}"
-              alt="avatar"
-              class="pfp"
-              style="width: 40px; height: 40px; border-radius: 50%"
-            />
-            <div style="flex: 1">
-              <a
-                href="{{ url_for('user_profile', username=user.username) }}"
-                style="color: var(--card); text-decoration: none; font-weight: 500;"
-              >
-                {{ user.username }}
-              </a>
-              {% if user.role in ['admin','owner'] %}
-              <span class="badge" style="margin-left: 6px">{{ user.role|capitalize }}</span>
-              {% endif %}
-              {% if user.bio %}
-              <div class="muted" style="font-size: 0.9em; margin-top: 4px">
-                {{ user.bio[:100] }}{% if user.bio|length > 100 %}...{% endif %}
-              </div>
-              {% endif %}
-            </div>
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="muted" style="margin-bottom: 24px;">No users found.</div>
-        {% endif %}
-
-        <!-- Packages Section -->
-        <h3 style="margin-bottom: 12px; color: var(--card);">Packages</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+          <h2 style="margin: 0;">All Packages</h2>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span class="muted" style="font-size: 0.9em;">Sort by:</span>
+            <a href="{{ url_for('packages', sort='name', order='asc' if not (sort_by == 'name' and order == 'asc') else 'desc') }}"
+               class="btn ghost{% if sort_by == 'name' %} active{% endif %}"
+               style="padding: 6px 12px; font-size: 0.85em;">
+              Name {% if sort_by == 'name' %}{{ '↑' if order == 'asc' else '↓' }}{% endif %}
+            </a>
+            <a href="{{ url_for('packages', sort='date', order='desc' if not (sort_by == 'date' and order == 'desc') else 'asc') }}"
+               class="btn ghost{% if sort_by == 'date' %} active{% endif %}"
+               style="padding: 6px 12px; font-size: 0.85em;">
+              Date {% if sort_by == 'date' %}{{ '↑' if order == 'asc' else '↓' }}{% endif %}
+            </a>
+            <a href="{{ url_for('packages', sort='size', order='desc' if not (sort_by == 'size' and order == 'desc') else 'asc') }}"
+               class="btn ghost{% if sort_by == 'size' %} active{% endif %}"
+               style="padding: 6px 12px; font-size: 0.85em;">
+              Size {% if sort_by == 'size' %}{{ '↑' if order == 'asc' else '↓' }}{% endif %}
+            </a>
+          </div>
+        </div>
         {% if packages %}
         <ul style="list-style: none; padding: 0; margin: 0">
           {% for pkg in packages %}
@@ -122,18 +103,24 @@
               </a>
               <div class="muted" style="font-size: 0.9em; margin-top: 4px">
                 by <a href="{{ url_for('user_profile', username=pkg.username) }}" style="color: var(--muted);">{{ pkg.username }}</a>
+                <span style="margin-left: 12px;">
+                  {% if pkg.size < 1024 %}{{ pkg.size }} B
+                  {% elif pkg.size < 1048576 %}{{ (pkg.size / 1024)|round(1) }} KB
+                  {% else %}{{ (pkg.size / 1048576)|round(2) }} MB{% endif %}
+                </span>
+                <span style="margin-left: 12px;">{{ pkg.modified|timestamp_to_date }}</span>
               </div>
             </div>
+            {% if session.get('role') in ['admin','owner'] %}
+            <form method="POST" action="{{ url_for('delete_user_file', username=pkg.username, filename=pkg.filename) }}" style="margin: 0;">
+              <button type="submit" class="btn ghost" style="padding: 6px 12px; font-size: 0.85em;" onclick="return confirm('Delete {{ pkg.name }}?')">Delete</button>
+            </form>
+            {% endif %}
           </li>
           {% endfor %}
         </ul>
         {% else %}
-        <div class="muted">No packages found.</div>
-        {% endif %}
-
-        {% else %}
-        <h2>Search</h2>
-        <div class="muted">Use the search bar above to find users and packages.</div>
+        <div class="muted">No packages available yet.</div>
         {% endif %}
       </section>
     </main>

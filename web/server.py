@@ -10,6 +10,7 @@ import uuid
 import time
 import shutil
 import logging
+from datetime import datetime
 from wtforms.validators import InputRequired
 
 # Configure logging
@@ -17,6 +18,14 @@ logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-only-change-me')
+
+@app.template_filter('timestamp_to_date')
+def timestamp_to_date(ts):
+    """Convert Unix timestamp to readable date string."""
+    try:
+        return datetime.fromtimestamp(ts).strftime('%b %d, %Y')
+    except Exception:
+        return ''
 
 # Warn if using default secret key
 if app.config['SECRET_KEY'] == 'dev-only-change-me':
@@ -74,6 +83,9 @@ def init_db():
     # add role column if missing
     if 'role' not in cols:
         c.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'member'")
+    # add ban_until column if missing
+    if 'ban_until' not in cols:
+        c.execute("ALTER TABLE users ADD COLUMN ban_until INTEGER DEFAULT 0")
     # ensure specific owner user
     try:
         c.execute("UPDATE users SET role = 'owner' WHERE LOWER(username) = 'frogman'")
@@ -85,7 +97,7 @@ def init_db():
 def get_user_by_username(username):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('SELECT id, username, password_hash, bio, username_changed_at, uuid, role FROM users WHERE username = ?', (username,))
+    c.execute('SELECT id, username, password_hash, bio, username_changed_at, uuid, role, ban_until FROM users WHERE username = ?', (username,))
     row = c.fetchone()
     conn.close()
     if not row:
@@ -97,7 +109,8 @@ def get_user_by_username(username):
         'bio': row[3] or '',
         'username_changed_at': int(row[4] or 0),
         'uuid': row[5] or '',
-        'role': (row[6] or 'member').lower()
+        'role': (row[6] or 'member').lower(),
+        'ban_until': int(row[7] or 0)
     }
 
 def get_user_by_uuid(user_uuid):
@@ -105,7 +118,7 @@ def get_user_by_uuid(user_uuid):
         return None
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('SELECT id, username, password_hash, bio, username_changed_at, uuid, role FROM users WHERE uuid = ?', (user_uuid,))
+    c.execute('SELECT id, username, password_hash, bio, username_changed_at, uuid, role, ban_until FROM users WHERE uuid = ?', (user_uuid,))
     row = c.fetchone()
     conn.close()
     if not row:
@@ -117,8 +130,34 @@ def get_user_by_uuid(user_uuid):
         'bio': row[3] or '',
         'username_changed_at': int(row[4] or 0),
         'uuid': row[5] or '',
-        'role': (row[6] or 'member').lower()
+        'role': (row[6] or 'member').lower(),
+        'ban_until': int(row[7] or 0)
     }
+
+def is_user_banned(user):
+    """Check if user is currently banned. Returns (is_banned, ban_until_timestamp)."""
+    if not user:
+        return False, 0
+    ban_until = user.get('ban_until', 0)
+    if ban_until == 0:
+        return False, 0
+    if ban_until == -1:  # permanent ban
+        return True, -1
+    return time.time() < ban_until, ban_until
+
+def ban_user(username, duration_seconds):
+    """Ban a user for duration_seconds. Use -1 for permanent ban, 0 to unban."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    if duration_seconds == 0:
+        ban_until = 0
+    elif duration_seconds == -1:
+        ban_until = -1
+    else:
+        ban_until = int(time.time() + duration_seconds)
+    c.execute('UPDATE users SET ban_until = ? WHERE username = ?', (ban_until, username))
+    conn.commit()
+    conn.close()
 
 def create_user(username, password):
     try:
@@ -180,6 +219,75 @@ def search_packages(query, limit=20):
                 if len(results) >= limit:
                     return results
     return results
+
+
+def parse_leaf_manifest(filepath):
+    """Parse a .leaf manifest file and return a dict of metadata."""
+    manifest = {
+        'name': None,
+        'version': None,
+        'description': None,
+        'author': None,
+        'license': None,
+        'repository': None,
+        'homepage': None,
+        'files': [],
+        'dependencies': [],
+        'raw': ''
+    }
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+            manifest['raw'] = content
+            in_files = False
+            in_dependencies = False
+            for line in content.split('\n'):
+                stripped = line.strip()
+                # Detect list sections
+                if stripped.startswith('files:'):
+                    in_files = True
+                    in_dependencies = False
+                    continue
+                if stripped.startswith('dependencies:'):
+                    in_dependencies = True
+                    in_files = False
+                    continue
+                # List item
+                if stripped.startswith('- '):
+                    item = stripped[2:].strip()
+                    if in_files:
+                        # Handle path: format or just filename
+                        if item.startswith('path:'):
+                            manifest['files'].append(item[5:].strip())
+                        else:
+                            manifest['files'].append(item)
+                    elif in_dependencies:
+                        manifest['dependencies'].append(item)
+                    continue
+                # Key-value pair (reset list context if not indented)
+                if ':' in stripped and not line.startswith(' ') and not line.startswith('\t'):
+                    in_files = False
+                    in_dependencies = False
+                    key, _, value = stripped.partition(':')
+                    key = key.strip().lower()
+                    value = value.strip()
+                    if key == 'name':
+                        manifest['name'] = value
+                    elif key == 'version':
+                        manifest['version'] = value
+                    elif key == 'description':
+                        manifest['description'] = value
+                    elif key == 'author':
+                        manifest['author'] = value
+                    elif key == 'license':
+                        manifest['license'] = value
+                    elif key == 'repository':
+                        manifest['repository'] = value
+                    elif key == 'homepage':
+                        manifest['homepage'] = value
+    except Exception:
+        pass
+    return manifest
 
 init_db()
 # -----------------------------------------------------------------------------------------------------
@@ -259,6 +367,79 @@ def search():
     return render_template('search.html', query=q, users=users, packages=packages)
 
 
+@app.route('/packages')
+def packages():
+    """List all public packages with sorting options."""
+    sort_by = request.args.get('sort', 'name')  # name, date, size
+    order = request.args.get('order', 'asc')    # asc, desc
+    
+    all_packages = []
+    if os.path.isdir(PUBLIC_DIR):
+        for username in os.listdir(PUBLIC_DIR):
+            user_dir = os.path.join(PUBLIC_DIR, username)
+            if not os.path.isdir(user_dir):
+                continue
+            for fn in os.listdir(user_dir):
+                if allowed_file(fn):
+                    filepath = os.path.join(user_dir, fn)
+                    try:
+                        stats = os.stat(filepath)
+                        filesize = stats.st_size
+                        modified = stats.st_mtime
+                    except OSError:
+                        filesize = 0
+                        modified = 0
+                    all_packages.append({
+                        'filename': fn,
+                        'username': username,
+                        'name': fn.rsplit('.', 1)[0],
+                        'size': filesize,
+                        'modified': modified
+                    })
+    
+    # Sort packages
+    reverse = (order == 'desc')
+    if sort_by == 'date':
+        all_packages.sort(key=lambda p: p['modified'], reverse=reverse)
+    elif sort_by == 'size':
+        all_packages.sort(key=lambda p: p['size'], reverse=reverse)
+    else:  # default: name
+        all_packages.sort(key=lambda p: p['name'].lower(), reverse=reverse)
+    
+    return render_template('packages.html', packages=all_packages, sort_by=sort_by, order=order)
+
+
+@app.route('/package/<username>/<filename>')
+def package_info(username, filename):
+    """Display package manifest information."""
+    # Validate path
+    if '..' in username or '..' in filename or '/' in username or '/' in filename:
+        abort(404)
+    if not allowed_file(filename):
+        abort(404)
+    
+    # Find the package file
+    filepath = os.path.join(PUBLIC_DIR, username, filename)
+    if not os.path.isfile(filepath):
+        abort(404)
+    
+    # Parse manifest
+    manifest = parse_leaf_manifest(filepath)
+    
+    # Get file stats
+    stats = os.stat(filepath)
+    filesize = stats.st_size
+    modified = stats.st_mtime
+    
+    return render_template('package_info.html',
+        username=username,
+        filename=filename,
+        manifest=manifest,
+        filesize=filesize,
+        modified=modified
+    )
+
+
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     # require login
@@ -325,6 +506,15 @@ def login():
         user = get_user_by_username(username)
         if not user or not check_password_hash(user['password_hash'], password):
             flash('Invalid credentials')
+            return render_template('login.html')
+        # Check if user is banned
+        banned, ban_until = is_user_banned(user)
+        if banned:
+            if ban_until == -1:
+                flash('Your account has been permanently banned')
+            else:
+                ban_date = datetime.fromtimestamp(ban_until).strftime('%b %d, %Y at %H:%M')
+                flash(f'Your account is banned until {ban_date}')
             return render_template('login.html')
         session['user'] = user['username']
         session['user_id'] = user['id']
@@ -403,7 +593,53 @@ def user_profile(username):
 
     bio = user.get('bio', '') if user else ''
     role = (user.get('role', 'member') if user else 'member')
-    return render_template('account.html', username=username, profile_url=profile_url, packages=packages, bio=bio, role=role)
+    ban_until = user.get('ban_until', 0) if user else 0
+    return render_template('account.html', username=username, profile_url=profile_url, packages=packages, bio=bio, role=role, ban_until=ban_until)
+
+
+@app.route('/users/<username>/ban', methods=['POST'])
+def ban_user_route(username):
+    """Ban a user (admin/owner only)."""
+    actor = session.get('user')
+    actor_role = (session.get('role') or 'member').lower()
+    
+    if not actor or actor_role not in ('admin', 'owner'):
+        abort(403)
+    
+    # Can't ban yourself
+    if actor == username:
+        flash('You cannot ban yourself')
+        return redirect(url_for('user_profile', username=username))
+    
+    target_user = get_user_by_username(username)
+    if not target_user:
+        abort(404)
+    
+    # Owners can't be banned, admins can only be banned by owners
+    target_role = target_user.get('role', 'member')
+    if target_role == 'owner':
+        flash('Cannot ban the owner')
+        return redirect(url_for('user_profile', username=username))
+    if target_role == 'admin' and actor_role != 'owner':
+        flash('Only the owner can ban admins')
+        return redirect(url_for('user_profile', username=username))
+    
+    duration = request.form.get('duration', '0')
+    try:
+        duration_seconds = int(duration)
+    except ValueError:
+        duration_seconds = 0
+    
+    ban_user(username, duration_seconds)
+    
+    if duration_seconds == 0:
+        flash(f'{username} has been unbanned')
+    elif duration_seconds == -1:
+        flash(f'{username} has been permanently banned')
+    else:
+        flash(f'{username} has been banned')
+    
+    return redirect(url_for('user_profile', username=username))
 
 
 @app.route('/userfiles/<username>/<path:filename>')
