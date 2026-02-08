@@ -125,7 +125,9 @@ body {
   align-items: center;
 }
 .btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 16px;
   border-radius: 8px;
   text-decoration: none;
@@ -440,6 +442,9 @@ body {
 
 .form-actions {
   margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .placeholder {

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>leaf: {{ username }}'s profile</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body class="bg">
+    <header class="site-header">
+      <div class="container">
+        <a href="/" class="brand">
+          <img
+            src="{{ url_for('static', filename='images/logo.png') }}"
+            class="logo"
+          />leaf
+        </a>
+        <nav class="nav">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/upload" class="nav-link primary-nav">Upload</a>
+          {% if session.get('user') %}
+          <a
+            href="{{ url_for('user_profile', username=session.get('user')) }}"
+            class="nav-link"
+            >Hi, {{ session.get('user') }}</a
+          >
+          <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+          {% else %}
+          <a href="{{ url_for('login') }}" class="nav-link">Login</a>
+          <a href="{{ url_for('signup') }}" class="nav-link">Sign Up</a>
+          {% endif %}
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="form-card fancy-card fade-in">
+        <div style="display: flex; align-items: center; gap: 18px">
+          <img
+            src="{{ profile_url }}"
+            alt="profile"
+            style="
+              width: 96px;
+              height: 96px;
+              border-radius: 12px;
+              object-fit: cover;
+              border: 1px solid rgba(255, 255, 255, 0.04);
+            "
+          />
+          <div>
+            <h2 style="margin: 0">{{ username }}</h2>
+            <div class="muted">Member</div>
+          </div>
+        </div>
+
+        <hr style="margin: 18px 0; border-color: rgba(255, 255, 255, 0.03)" />
+
+        <h3>Submitted packages</h3>
+        {% if packages %}
+        <ul class="muted">
+          {% for p in packages %}
+          <li>
+            <a
+              href="{{ url_for('user_file_download', username=username, filename=p) }}"
+              class="muted"
+              >{{ p }}</a
+            >
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="muted">No packages submitted yet.</div>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>

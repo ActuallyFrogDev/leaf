@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>leaf: login</title>
+    <title>leaf: sign up</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/style.css') }}"
@@ -58,12 +58,12 @@
 
         <div class="form-grid single">
           <div>
-            <h3>Sign In</h3>
-            <form method="POST" action="/login" class="upload-form">
+            <h3>Create Account</h3>
+            <form method="POST" action="/signup" class="upload-form">
               <label class="placeholder-input">
                 <input
                   name="username"
-                  placeholder="Username"
+                  placeholder="Choose a username"
                   style="
                     width: 100%;
                     border: none;
@@ -76,7 +76,7 @@
                 <input
                   name="password"
                   type="password"
-                  placeholder="Password"
+                  placeholder="Choose a password"
                   style="
                     width: 100%;
                     border: none;
@@ -86,9 +86,9 @@
                 />
               </label>
               <div class="form-actions">
-                <button class="btn primary" type="submit">Sign In</button>
-                <a href="{{ url_for('signup') }}" class="btn ghost"
-                  >Create account</a
+                <button class="btn ghost" type="submit">Sign Up</button>
+                <a href="{{ url_for('login') }}" class="btn"
+                  >Already have an account?</a
                 >
               </div>
             </form>
