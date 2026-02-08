@@ -92,6 +92,26 @@ def get_user_by_username(username):
         'role': (row[6] or 'member').lower()
     }
 
+def get_user_by_uuid(user_uuid):
+    if not user_uuid:
+        return None
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT id, username, password_hash, bio, username_changed_at, uuid, role FROM users WHERE uuid = ?', (user_uuid,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {
+        'id': row[0],
+        'username': row[1],
+        'password_hash': row[2],
+        'bio': row[3] or '',
+        'username_changed_at': int(row[4] or 0),
+        'uuid': row[5] or '',
+        'role': (row[6] or 'member').lower()
+    }
+
 def create_user(username, password):
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -112,13 +132,20 @@ init_db()
 @app.before_request
 def sync_session_from_db():
     # keep session role/uuid in sync with DB so promotions take effect immediately
-    uname = session.get('user')
-    if uname:
-        u = get_user_by_username(uname)
-        if u:
-            session['role'] = u.get('role', 'member')
-            if u.get('uuid'):
-                session['uuid'] = u.get('uuid')
+    suuid = session.get('uuid')
+    u = None
+    if suuid:
+        u = get_user_by_uuid(suuid)
+    else:
+        uname = session.get('user')
+        if uname:
+            u = get_user_by_username(uname)
+    if u:
+        # Always reflect latest DB state in session
+        session['role'] = u.get('role', 'member')
+        session['user'] = u.get('username')
+        if u.get('uuid'):
+            session['uuid'] = u.get('uuid')
 
 
 @app.context_processor
