@@ -9,7 +9,7 @@ TEST_SRC = $(SRC_DIR)/test_leaf_parser.c
 TEST_BIN = test_leaf_parser
 
 LEAF_SRC = $(SRC_DIR)/main.c $(SRC_DIR)/leaf_parser.c
-LEAF_BIN = leaf # lmao
+LEAF_BIN = leaf
 
 .PHONY: all test run-test leaf clean
 
