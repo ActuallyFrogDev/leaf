@@ -1,4 +1,4 @@
-from flask import Flask, render_template, send_from_directory, abort, redirect, url_for, request, session, flash
+from flask import Flask, render_template, send_from_directory, send_file, abort, redirect, url_for, request, session, flash
 from flask_wtf import FlaskForm
 from wtforms import FileField, SubmitField
 from werkzeug.utils import secure_filename
@@ -610,6 +610,16 @@ def example_download():
     if not os.path.isfile(requested):
         abort(404)
     return send_from_directory(example_dir, filename, as_attachment=True)
+
+@app.route('/install/install.sh')
+def serve_install_sh():
+    # Serve the top-level install.sh at /install/install.sh
+    project_root = os.path.abspath(os.path.join(BASE_DIR, os.pardir))
+    script_path = os.path.join(project_root, 'install.sh')
+    if not os.path.isfile(script_path):
+        abort(404)
+    # Use a shell script MIME type; browsers may display or download
+    return send_file(script_path, mimetype='text/x-shellscript')
 
 if __name__ == '__main__':
     app.run(debug=True)
