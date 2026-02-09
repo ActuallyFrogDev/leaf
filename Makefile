@@ -1,5 +1,7 @@
 CC ?= cc
-CFLAGS ?= -std=c11 -O2 -Wall -Wextra
+CFLAGS ?= -std=c11 -O3 -flto -Wall -Wextra -march=native -DNDEBUG
+
+LDFLAGS_EXTRA = -flto
 
 SRC_DIR = src
 BUILD_DIR = build
@@ -26,7 +28,7 @@ run-test: test
 	./$(TEST_BIN) web/storage/example/example.leaf
 
 $(LEAF_BIN): $(LEAF_SRC) $(PARSER_SRC)
-	$(CC) $(CFLAGS) $(LEAF_SRC) $(PARSER_SRC) $(CURL_FLAGS) -o $(LEAF_BIN)
+	$(CC) $(CFLAGS) $(LDFLAGS_EXTRA) $(LEAF_SRC) $(PARSER_SRC) $(CURL_FLAGS) -lutil -o $(LEAF_BIN)
 
 clean:
 	rm -f $(TEST_BIN)
