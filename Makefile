@@ -33,7 +33,6 @@ clean:
 	rm -f $(LEAF_BIN)
 	rm -rf $(BUILD_DIR)
 
-
 install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	install -m 755 leaf $(DESTDIR)$(PREFIX)/bin/leaf
