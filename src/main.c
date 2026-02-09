@@ -1,4 +1,5 @@
 #define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 500
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,7 +11,9 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <time.h>
+#include <dirent.h>
 #include <errno.h>
+#include <ftw.h>
 #include <pty.h>
 #include <curl/curl.h>
 #include "leaf_parser.h"
@@ -18,6 +21,8 @@
 #define BASE_URL "https://leaf.treelinux.org"
 #define API_ENDPOINT "/api/package/"
 #define DOWNLOAD_ENDPOINT "/userfiles/"
+#define UPDATE_VERSION_URL "https://raw.githubusercontent.com/ActuallyFrogDev/leaf/master/version.txt"
+#define UPDATE_REPO_URL "https://github.com/ActuallyFrogDev/leaf.git"
 
 // Cached paths (computed once)
 static const char *g_home = NULL;
@@ -173,7 +178,6 @@ static int is_package_installed(const char *pkg_name) {
 
 // Forward declarations
 static int get_terminal_width(void);
-static void draw_progress(const char *msg, int frame);
 
 // Draw a real progress bar with known percentage (buffered single write)
 static void draw_real_progress(const char *msg, const char *stage, int percent) {
@@ -424,42 +428,6 @@ static int get_terminal_width(void) {
 	return 80;
 }
 
-// Draw an indeterminate progress bar (buffered single write)
-static void draw_progress(const char *msg, int frame) {
-	const char spinner[] = "|/-\\";
-	int term_width = get_terminal_width();
-	
-	int msg_len = (int)strlen(msg);
-	int bar_width = term_width - 1 - 1 - msg_len - 1 - 2 - 3;
-	if (bar_width < 10) bar_width = 10;
-	
-	int block_width = 5;
-	int travel = bar_width - block_width;
-	if (travel < 1) travel = 1;
-	int pos = frame % (travel * 2);
-	if (pos >= travel) pos = travel * 2 - pos;
-	
-	int dots = (frame / 3) % 4;
-	
-	// Build entire line in buffer, single write
-	char buf[2048];
-	int p = 0;
-	p += snprintf(buf + p, sizeof(buf) - p, "\r\033[K%c %s [", spinner[frame % 4], msg);
-	for (int i = 0; i < bar_width && p < (int)sizeof(buf) - 30; i++) {
-		if (i >= pos && i < pos + block_width) {
-			buf[p++] = '\033'; buf[p++] = '['; buf[p++] = '1'; buf[p++] = ';';
-			buf[p++] = '3'; buf[p++] = '2'; buf[p++] = 'm'; buf[p++] = '=';
-			buf[p++] = '\033'; buf[p++] = '['; buf[p++] = '0'; buf[p++] = 'm';
-		} else {
-			buf[p++] = ' ';
-		}
-	}
-	buf[p++] = ']';
-	for (int i = 0; i < dots; i++) buf[p++] = '.';
-	for (int i = dots; i < 3; i++) buf[p++] = ' ';
-	write(STDOUT_FILENO, buf, p);
-}
-
 // Parse cmake-style progress marker "[ NN%]" from a line, return percentage or -1
 // Handles ANSI escape codes from pty output (e.g. \033[32m[ 42%]\033[0m)
 static int parse_cmake_progress(const char *line) {
@@ -658,8 +626,8 @@ static void print_usage(const char *prog) {
 			"Commands:\n"
 			"  grow <pkg>    Install a package (clone, install deps, compile)\n"
 			"  uproot <pkg>  Remove a package from ~/leaf/packages\n"
-			"  list          List installed packages (placeholder)\n"
-			"  reset         Reset leaf state (placeholder)\n\n"
+			"  list          List installed packages\n"
+			"  reset         Delete and reinstall all leaf files and packages\n\n"
 			"Global options:\n"
 			"  -v, --version     Show version\n"
 			"  -h, --help        Show this help\n\n",
@@ -950,10 +918,19 @@ cleanup:
 }
 
 static int cmd_grow(const Options *o) {
-	curl_global_init(CURL_GLOBAL_DEFAULT);
-	int ret = install_package(o->pkg);
-	curl_global_cleanup();
-	return ret;
+	return install_package(o->pkg);
+}
+
+// nftw callback for recursive delete
+static int rm_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
+	(void)sb; (void)typeflag; (void)ftwbuf;
+	return remove(fpath);
+}
+
+static int rm_rf(const char *path) {
+	struct stat st;
+	if (stat(path, &st) != 0) return 0; // already gone
+	return nftw(path, rm_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 
 static int cmd_uproot(const Options *o) {
@@ -972,84 +949,216 @@ static int cmd_uproot(const Options *o) {
 	printf("\n=== Removing: %s ===\n", pkg_name);
 	printf("Location: %s\n\n", pkg_path);
 	
-	char cmd[1024];
-	snprintf(cmd, sizeof(cmd), "rm -rf '%s' 2>/dev/null", pkg_path);
-	
-	pid_t pid = fork();
-	if (pid == -1) {
-		fprintf(stderr, "Failed to fork\n");
+	if (rm_rf(pkg_path) != 0) {
+		fprintf(stderr, "\033[1;31m✗\033[0m Failed to remove '%s'\n", pkg_name);
 		return 1;
 	}
 	
-	if (pid == 0) {
-		execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
-		_exit(127);
-	}
+	// Also remove cached manifest if present
+	char cache_path[512];
+	snprintf(cache_path, sizeof(cache_path), "%s/%s.leaf", g_cache_dir, pkg_name);
+	remove(cache_path); // best-effort, ignore errors
 	
-	int status;
-	int frame = 0;
-	while (1) {
-		pid_t result = waitpid(pid, &status, WNOHANG);
-		if (result == pid) break;
-		if (result == -1) {
-			write(STDOUT_FILENO, "\r\033[K", 4);
-			fprintf(stderr, "waitpid error\n");
-			return 1;
-		}
-		draw_progress("Removing", frame++);
-		struct timespec ts = {0, 100000000};
-		nanosleep(&ts, NULL);
-	}
-	
-	write(STDOUT_FILENO, "\r\033[K", 4);
-	
-	if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-		printf("\033[1;32m✓\033[0m Successfully removed '%s'\n", pkg_name);
-		return 0;
-	} else {
-		int exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
-		fprintf(stderr, "\033[1;31m✗\033[0m Failed to remove package (exit code %d)\n", exit_code);
-		return 1;
-	}
+	printf("\033[1;32m✓\033[0m Successfully removed '%s'\n", pkg_name);
+	return 0;
 }
 
 static int cmd_list(const Options *o) {
 	(void)o;
-	printf("[list] placeholder\n");
+	if (init_paths() != 0) return 1;
+
+	DIR *dir = opendir(g_packages_dir);
+	if (!dir) {
+		printf("No packages installed.\n");
+		return 0;
+	}
+
+	struct dirent *entry;
+	int count = 0;
+
+	printf("\n\033[1mInstalled packages\033[0m (%s):\n\n", g_packages_dir);
+
+	while ((entry = readdir(dir)) != NULL) {
+		if (entry->d_name[0] == '.') continue;
+
+		char pkg_path[512];
+		snprintf(pkg_path, sizeof(pkg_path), "%s/%s", g_packages_dir, entry->d_name);
+
+		struct stat st;
+		if (stat(pkg_path, &st) != 0 || !S_ISDIR(st.st_mode)) continue;
+
+		// Try to find a cached .leaf manifest for richer info
+		char manifest_path[512];
+		snprintf(manifest_path, sizeof(manifest_path), "%s/%s.leaf", g_cache_dir, entry->d_name);
+
+		leaf_manifest *m = parse_leaf_file(manifest_path);
+		if (m) {
+			printf("  \033[1;32m%s\033[0m %s\n",
+				m->name ? m->name : entry->d_name,
+				m->version ? m->version : "");
+			if (m->description)
+				printf("    %s\n", m->description);
+			free_leaf_manifest(m);
+		} else {
+			printf("  \033[1;32m%s\033[0m\n", entry->d_name);
+		}
+		count++;
+	}
+
+	closedir(dir);
+
+	if (count == 0) {
+		printf("  (none)\n");
+	}
+	printf("\n%d package(s) installed.\n", count);
 	return 0;
 }
 
 static int cmd_reset(const Options *o) {
 	(void)o;
-	printf("[reset] placeholder\n");
+	if (init_paths() != 0) return 1;
+
+	printf("\n\033[1;33m⚠  WARNING:\033[0m This will delete ALL leaf data:\n");
+	printf("   • %s/.leaf  (cache + logs)\n", g_home);
+	printf("   • %s/leaf   (all installed packages)\n\n", g_home);
+	printf("Type \"yes\" to confirm: ");
+	fflush(stdout);
+
+	char confirm[16] = {0};
+	if (!fgets(confirm, sizeof(confirm), stdin) || strncmp(confirm, "yes", 3) != 0) {
+		printf("Aborted.\n");
+		return 0;
+	}
+
+	char leaf_dot[512], leaf_dir[512];
+	snprintf(leaf_dot, sizeof(leaf_dot), "%s/.leaf", g_home);
+	snprintf(leaf_dir, sizeof(leaf_dir), "%s/leaf", g_home);
+
+	printf("\nRemoving %s ...\n", leaf_dot);
+	if (rm_rf(leaf_dot) != 0) {
+		fprintf(stderr, "\033[1;31m✗\033[0m Failed to remove %s\n", leaf_dot);
+		return 1;
+	}
+	printf("Removing %s ...\n", leaf_dir);
+	if (rm_rf(leaf_dir) != 0) {
+		fprintf(stderr, "\033[1;31m✗\033[0m Failed to remove %s\n", leaf_dir);
+		return 1;
+	}
+
+	// Recreate directory structure
+	g_paths_init = 0;
+	if (init_paths() != 0) return 1;
+
+	printf("\n\033[1;32m✓\033[0m Leaf has been reset. Directories recreated.\n");
+	printf("  Run 'leaf grow <pkg>' to reinstall packages.\n");
 	return 0;
+}
+
+// --- Auto-update check ---
+// Compare semver strings: return <0 if a<b, 0 if equal, >0 if a>b
+static int semver_cmp(const char *a, const char *b) {
+	int av[3] = {0}, bv[3] = {0};
+	sscanf(a, "%d.%d.%d", &av[0], &av[1], &av[2]);
+	sscanf(b, "%d.%d.%d", &bv[0], &bv[1], &bv[2]);
+	for (int i = 0; i < 3; i++) {
+		if (av[i] != bv[i]) return av[i] - bv[i];
+	}
+	return 0;
+}
+
+static void check_for_updates(void) {
+	CURL *curl = curl_easy_init();
+	if (!curl) return;
+
+	Buffer buf = {0};
+	curl_easy_setopt(curl, CURLOPT_URL, UPDATE_VERSION_URL);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buf);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);  // short timeout to avoid blocking
+
+	CURLcode res = curl_easy_perform(curl);
+	curl_easy_cleanup(curl);
+
+	if (res != CURLE_OK || !buf.data || buf.size == 0) {
+		free(buf.data);
+		return;
+	}
+
+	// Trim whitespace from remote version
+	char remote[32] = {0};
+	size_t ri = 0;
+	for (size_t i = 0; i < buf.size && ri < sizeof(remote) - 1; i++) {
+		if (!isspace((unsigned char)buf.data[i]))
+			remote[ri++] = buf.data[i];
+	}
+	remote[ri] = '\0';
+	free(buf.data);
+
+	if (semver_cmp(LEAF_VERSION, remote) >= 0) return; // up to date
+
+	printf("\n\033[1;33m⚡ Update available:\033[0m %s → %s\n", LEAF_VERSION, remote);
+	printf("Updating leaf...\n");
+
+	char tmpdir[] = "/tmp/leaf-update-XXXXXX";
+	if (!mkdtemp(tmpdir)) {
+		fprintf(stderr, "Failed to create temp directory\n");
+		return;
+	}
+
+	char cmd[1024];
+	snprintf(cmd, sizeof(cmd),
+		"cd '%s' && "
+		"git clone --depth 1 --filter=blob:none --sparse '%s' leaf 2>/dev/null && "
+		"cd leaf && "
+		"git sparse-checkout set --no-cone '/*' '!web' 2>/dev/null && "
+		"make leaf 2>/dev/null && "
+		"sudo make install 2>/dev/null && "
+		"echo __UPDATE_OK__",
+		tmpdir, UPDATE_REPO_URL);
+
+	FILE *fp = popen(cmd, "r");
+	if (!fp) {
+		fprintf(stderr, "\033[1;31m✗\033[0m Update failed\n");
+		snprintf(cmd, sizeof(cmd), "rm -rf '%s'", tmpdir);
+		system(cmd);
+		return;
+	}
+
+	char line[256];
+	int ok = 0;
+	while (fgets(line, sizeof(line), fp)) {
+		if (strstr(line, "__UPDATE_OK__")) ok = 1;
+	}
+	pclose(fp);
+
+	// Cleanup temp dir
+	snprintf(cmd, sizeof(cmd), "rm -rf '%s'", tmpdir);
+	system(cmd);
+
+	if (ok) {
+		printf("\033[1;32m✓\033[0m Updated to %s\n", remote);
+	} else {
+		fprintf(stderr, "\033[1;31m✗\033[0m Update failed. Run update.sh manually.\n");
+	}
 }
 
 int main(int argc, char **argv) {
 	Options opts;
-	if (argc <= 1) {
-		print_usage(argv[0]);
-		return 1;
-	}
-	if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0) {
-		print_version();
-		return 0;
-	}
-
-	if (parse_args(argc, argv, &opts) != 0) {
-		// parse_args already printed why
-		return 2;
-	}
-
+	if (parse_args(argc, argv, &opts) != 0) return 2;
 	if (opts.version) { print_version(); return 0; }
 
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+	int ret;
 	switch (opts.cmd) {
-		case CMD_GROW: return cmd_grow(&opts);
-		case CMD_UPROOT: return cmd_uproot(&opts);
-		case CMD_LIST: return cmd_list(&opts);
-		case CMD_RESET: return cmd_reset(&opts);
-		default:
-			print_usage(argv[0]);
-			return 2;
+		case CMD_GROW:   ret = cmd_grow(&opts);   break;
+		case CMD_UPROOT: ret = cmd_uproot(&opts); break;
+		case CMD_LIST:   ret = cmd_list(&opts);   break;
+		case CMD_RESET:  ret = cmd_reset(&opts);  break;
+		default:         print_usage(argv[0]); return 2;
 	}
+
+	check_for_updates();
+	curl_global_cleanup();
+	return ret;
 }
