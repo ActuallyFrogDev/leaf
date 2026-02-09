@@ -3,6 +3,7 @@ CFLAGS ?= -std=c11 -O2 -Wall -Wextra
 
 SRC_DIR = src
 BUILD_DIR = build
+PREFIX ?= /usr
 
 PARSER_SRC = $(SRC_DIR)/leaf_parser.c
 TEST_SRC = $(SRC_DIR)/test_leaf_parser.c
@@ -31,4 +32,10 @@ clean:
 	rm -f $(TEST_BIN)
 	rm -f $(LEAF_BIN)
 	rm -rf $(BUILD_DIR)
+
+
+install:
+	mkdir -p $(DESTDIR)$(PREFIX)/bin
+	install -m 755 leaf $(DESTDIR)$(PREFIX)/bin/leaf
+
 
