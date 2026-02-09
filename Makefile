@@ -1,5 +1,6 @@
 CC ?= cc
-CFLAGS ?= -std=c11 -O3 -flto -Wall -Wextra -march=native -DNDEBUG
+VERSION := $(shell cat version.txt 2>/dev/null || echo "0.0.0")
+CFLAGS ?= -std=c11 -O3 -flto -Wall -Wextra -march=native -DNDEBUG -DLEAF_VERSION='"$(VERSION)"'
 
 LDFLAGS_EXTRA = -flto
 

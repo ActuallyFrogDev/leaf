@@ -644,8 +644,12 @@ static int compile_package(const char *pkg_dir, const char *compile_cmd) {
 	}
 }
 
+#ifndef LEAF_VERSION
+#define LEAF_VERSION "0.0.0"
+#endif
+
 static void print_version(void) {
-	printf("leaf 1.0.0\n");
+	printf("leaf %s\n", LEAF_VERSION);
 }
 
 static void print_usage(const char *prog) {
