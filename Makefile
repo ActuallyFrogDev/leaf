@@ -13,7 +13,7 @@ LEAF_SRC = $(SRC_DIR)/main.c
 LEAF_BIN = leaf
 CURL_FLAGS = $(shell curl-config --cflags --libs 2>/dev/null || echo "-lcurl")
 
-.PHONY: all test run-test leaf clean
+.PHONY: all test run-test leaf clean install
 
 all: $(TEST_BIN) $(LEAF_BIN)
 
