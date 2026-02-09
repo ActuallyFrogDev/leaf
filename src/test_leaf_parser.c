@@ -12,11 +12,7 @@ int main(int argc, char **argv) {
         return 2;
     }
 
-    printf("name: %s\n", m->name ? m->name : "(null)");
-    printf("version: %s\n", m->version ? m->version : "(null)");
-    printf("dependencies: %s\n", m->dependencies ? m->dependencies : "(null)");
-    printf("github: %s\n", m->github ? m->github : "(null)");
-    printf("compile: %s\n", m->compile_cmd ? m->compile_cmd : "(null)");
+    print_leaf_manifest(m);
 
     free_leaf_manifest(m);
     return 0;

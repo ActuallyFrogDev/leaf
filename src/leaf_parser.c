@@ -120,10 +120,18 @@ leaf_manifest *parse_leaf_file(const char *path) {
             free(m.name); m.name = parsed;
         } else if (strcmp(key, "PACKAGE.VERSION") == 0) {
             free(m.version); m.version = parsed;
+        } else if (strcmp(key, "PACKAGE.DESCRIPTION") == 0) {
+            free(m.description); m.description = parsed;
+        } else if (strcmp(key, "PACKAGE.AUTHOR") == 0) {
+            free(m.author); m.author = parsed;
+        } else if (strcmp(key, "PACKAGE.LICENSE") == 0) {
+            free(m.license); m.license = parsed;
         } else if (strcmp(key, "PACKAGE.DEPENDENCIES") == 0) {
-            free(m.dependencies); m.dependencies = parsed;
+            free(m.dependencies_raw); m.dependencies_raw = parsed;
         } else if (strcmp(key, "PACKAGE.GITHUB") == 0) {
             free(m.github); m.github = parsed;
+        } else if (strcmp(key, "PACKAGE.HOMEPAGE") == 0) {
+            free(m.homepage); m.homepage = parsed;
         } else if (strcmp(key, "PACKAGE.COMPILE") == 0) {
             free(m.compile_cmd); m.compile_cmd = parsed;
         } else {
@@ -135,10 +143,35 @@ leaf_manifest *parse_leaf_file(const char *path) {
     free(line);
     fclose(f);
 
+    // Parse dependencies into list
+    if (m.dependencies_raw) {
+        char *deps_copy = xstrdup(m.dependencies_raw);
+        if (deps_copy) {
+            char *saveptr;
+            char *token = strtok_r(deps_copy, ",", &saveptr);
+            while (token && m.dependency_count < MAX_DEPENDENCIES) {
+                trim_inplace(token);
+                if (*token) {
+                    m.dependencies[m.dependency_count] = xstrdup(token);
+                    if (m.dependencies[m.dependency_count]) {
+                        m.dependency_count++;
+                    }
+                }
+                token = strtok_r(NULL, ",", &saveptr);
+            }
+            free(deps_copy);
+        }
+    }
+
     // allocate result
     leaf_manifest *res = malloc(sizeof(leaf_manifest));
     if (!res) {
-        free(m.name); free(m.version); free(m.dependencies); free(m.github); free(m.compile_cmd);
+        free(m.name); free(m.version); free(m.description);
+        free(m.author); free(m.license); free(m.dependencies_raw);
+        free(m.github); free(m.homepage); free(m.compile_cmd);
+        for (size_t i = 0; i < m.dependency_count; i++) {
+            free(m.dependencies[i]);
+        }
         return NULL;
     }
     *res = m;
@@ -149,8 +182,43 @@ void free_leaf_manifest(leaf_manifest *m) {
     if (!m) return;
     free(m->name);
     free(m->version);
-    free(m->dependencies);
+    free(m->description);
+    free(m->author);
+    free(m->license);
+    free(m->dependencies_raw);
     free(m->github);
+    free(m->homepage);
     free(m->compile_cmd);
+    for (size_t i = 0; i < m->dependency_count; i++) {
+        free(m->dependencies[i]);
+    }
     free(m);
+}
+
+void print_leaf_manifest(const leaf_manifest *m) {
+    if (!m) {
+        printf("(null manifest)\n");
+        return;
+    }
+    
+    printf("=== Leaf Package Manifest ===\n");
+    printf("Name:         %s\n", m->name ? m->name : "(not set)");
+    printf("Version:      %s\n", m->version ? m->version : "(not set)");
+    printf("Description:  %s\n", m->description ? m->description : "(not set)");
+    printf("Author:       %s\n", m->author ? m->author : "(not set)");
+    printf("License:      %s\n", m->license ? m->license : "(not set)");
+    printf("GitHub:       %s\n", m->github ? m->github : "(not set)");
+    printf("Homepage:     %s\n", m->homepage ? m->homepage : "(not set)");
+    printf("Compile:      %s\n", m->compile_cmd ? m->compile_cmd : "(not set)");
+    
+    printf("Dependencies: ");
+    if (m->dependency_count == 0) {
+        printf("(none)\n");
+    } else {
+        printf("(%zu)\n", m->dependency_count);
+        for (size_t i = 0; i < m->dependency_count; i++) {
+            printf("  - %s\n", m->dependencies[i]);
+        }
+    }
+    printf("=============================\n");
 }

@@ -102,6 +102,51 @@
           </p>
         </div>
       </section>
+
+      {% if posts or session.get('role') in ['admin','owner'] %}
+      <section class="form-card fancy-card fade-in" style="margin-top: 32px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2 style="margin: 0;">Announcements</h2>
+          {% if session.get('role') in ['admin','owner'] %}
+          <button type="button" class="btn ghost" onclick="document.getElementById('post-form').style.display = document.getElementById('post-form').style.display === 'none' ? 'block' : 'none'">New Post</button>
+          {% endif %}
+        </div>
+
+        {% if session.get('role') in ['admin','owner'] %}
+        <div id="post-form" style="display: none; margin-bottom: 24px; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+          <form method="POST" action="{{ url_for('create_post_route') }}">
+            <input type="text" name="title" placeholder="Post title..." style="width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: transparent; color: var(--card);" required>
+            <textarea name="content" placeholder="Write your announcement..." rows="4" style="width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: transparent; color: var(--card); resize: vertical;" required></textarea>
+            <button type="submit" class="btn primary">Publish</button>
+          </form>
+        </div>
+        {% endif %}
+
+        {% if posts %}
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          {% for post in posts %}
+          <article style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid var(--accent, #22c1c3);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <h3 style="margin: 0; font-size: 1.1em;">{{ post.title }}</h3>
+              {% if session.get('role') in ['admin','owner'] %}
+              <form method="POST" action="{{ url_for('delete_post_route', post_id=post.id) }}" style="margin: 0;">
+                <button type="submit" class="btn ghost" style="padding: 4px 8px; font-size: 0.8em;" onclick="return confirm('Delete this post?')">Delete</button>
+              </form>
+              {% endif %}
+            </div>
+            <p style="margin: 0 0 12px 0; color: var(--muted); white-space: pre-wrap;">{{ post.content }}</p>
+            <div class="muted" style="font-size: 0.85em;">
+              Posted by <a href="{{ url_for('user_profile', username=post.author) }}" style="color: var(--muted);">{{ post.author }}</a>
+              on {{ post.created_at|timestamp_to_date }}
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="muted">No announcements yet.</div>
+        {% endif %}
+      </section>
+      {% endif %}
     </main>
 
     <footer class="site-footer">

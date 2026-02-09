@@ -8,8 +8,9 @@ PARSER_SRC = $(SRC_DIR)/leaf_parser.c
 TEST_SRC = $(SRC_DIR)/test_leaf_parser.c
 TEST_BIN = test_leaf_parser
 
-LEAF_SRC = $(SRC_DIR)/main.c $(SRC_DIR)/leaf_parser.c
+LEAF_SRC = $(SRC_DIR)/main.c
 LEAF_BIN = leaf
+CURL_FLAGS = $(shell curl-config --cflags --libs 2>/dev/null || echo "-lcurl")
 
 .PHONY: all test run-test leaf clean
 
@@ -23,8 +24,8 @@ test: $(TEST_BIN)
 run-test: test
 	./$(TEST_BIN) web/storage/example/example.leaf
 
-$(LEAF_BIN): $(LEAF_SRC)
-	$(CC) $(CFLAGS) $(LEAF_SRC) -o $(LEAF_BIN)
+$(LEAF_BIN): $(LEAF_SRC) $(PARSER_SRC)
+	$(CC) $(CFLAGS) $(LEAF_SRC) $(PARSER_SRC) $(CURL_FLAGS) -o $(LEAF_BIN)
 
 clean:
 	rm -f $(TEST_BIN)

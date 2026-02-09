@@ -1,4 +1,4 @@
-from flask import Flask, render_template, send_from_directory, send_file, abort, redirect, url_for, request, session, flash
+from flask import Flask, render_template, send_from_directory, send_file, abort, redirect, url_for, request, session, flash, jsonify
 from flask_wtf import FlaskForm
 from wtforms import FileField, SubmitField
 from werkzeug.utils import secure_filename
@@ -92,7 +92,126 @@ def init_db():
     except Exception:
         pass
     conn.commit()
+    
+    # Create posts table for announcements
+    c.execute('''CREATE TABLE IF NOT EXISTS posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        author TEXT NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+    )''')
+    conn.commit()
+    
+    # Create packages table for CLI lookups
+    c.execute('''CREATE TABLE IF NOT EXISTS packages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        filename TEXT NOT NULL,
+        username TEXT NOT NULL,
+        size INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        UNIQUE(username, filename)
+    )''')
+    conn.commit()
     conn.close()
+    
+    # Sync packages table with filesystem on startup
+    sync_packages_db()
+
+
+def sync_packages_db():
+    """Sync the packages database table with the filesystem."""
+    if not os.path.isdir(PUBLIC_DIR):
+        return
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    # Get all packages currently in DB
+    c.execute('SELECT username, filename FROM packages')
+    db_packages = set((r[0], r[1]) for r in c.fetchall())
+    
+    # Get all packages on filesystem
+    fs_packages = set()
+    for username in os.listdir(PUBLIC_DIR):
+        user_dir = os.path.join(PUBLIC_DIR, username)
+        if not os.path.isdir(user_dir):
+            continue
+        for fn in os.listdir(user_dir):
+            if allowed_file(fn):
+                fs_packages.add((username, fn))
+    
+    # Remove packages from DB that no longer exist on filesystem
+    to_remove = db_packages - fs_packages
+    for username, filename in to_remove:
+        c.execute('DELETE FROM packages WHERE username = ? AND filename = ?', (username, filename))
+    
+    # Add packages to DB that exist on filesystem but not in DB
+    to_add = fs_packages - db_packages
+    for username, filename in to_add:
+        filepath = os.path.join(PUBLIC_DIR, username, filename)
+        try:
+            stats = os.stat(filepath)
+            size = stats.st_size
+            created_at = int(stats.st_mtime)
+        except OSError:
+            size = 0
+            created_at = int(time.time())
+        name = filename.rsplit('.', 1)[0]
+        c.execute('INSERT OR IGNORE INTO packages (name, filename, username, size, created_at) VALUES (?, ?, ?, ?, ?)',
+                  (name, filename, username, size, created_at))
+    
+    conn.commit()
+    conn.close()
+
+
+def register_package(username, filename):
+    """Register a package in the database when uploaded/approved."""
+    filepath = os.path.join(PUBLIC_DIR, username, filename)
+    try:
+        stats = os.stat(filepath)
+        size = stats.st_size
+        created_at = int(stats.st_mtime)
+    except OSError:
+        size = 0
+        created_at = int(time.time())
+    
+    name = filename.rsplit('.', 1)[0]
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('INSERT OR REPLACE INTO packages (name, filename, username, size, created_at) VALUES (?, ?, ?, ?, ?)',
+              (name, filename, username, size, created_at))
+    conn.commit()
+    conn.close()
+
+
+def unregister_package(username, filename):
+    """Remove a package from the database when deleted."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('DELETE FROM packages WHERE username = ? AND filename = ?', (username, filename))
+    conn.commit()
+    conn.close()
+
+
+def get_package_by_name(name):
+    """Find a package by name (case-insensitive)."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT name, filename, username, size, created_at FROM packages WHERE LOWER(name) = LOWER(?)', (name,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {
+        'name': row[0],
+        'filename': row[1],
+        'username': row[2],
+        'size': row[3],
+        'created_at': row[4]
+    }
+
 
 def get_user_by_username(username):
     conn = sqlite3.connect(DB_PATH)
@@ -158,6 +277,39 @@ def ban_user(username, duration_seconds):
     c.execute('UPDATE users SET ban_until = ? WHERE username = ?', (ban_until, username))
     conn.commit()
     conn.close()
+
+
+def create_post(author, title, content):
+    """Create a new announcement post."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    created_at = int(time.time())
+    c.execute('INSERT INTO posts (author, title, content, created_at) VALUES (?, ?, ?, ?)',
+              (author, title, content, created_at))
+    conn.commit()
+    post_id = c.lastrowid
+    conn.close()
+    return post_id
+
+
+def get_posts(limit=10):
+    """Get recent posts, newest first."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT id, author, title, content, created_at FROM posts ORDER BY created_at DESC LIMIT ?', (limit,))
+    rows = c.fetchall()
+    conn.close()
+    return [{'id': r[0], 'author': r[1], 'title': r[2], 'content': r[3], 'created_at': r[4]} for r in rows]
+
+
+def delete_post(post_id):
+    """Delete a post by ID."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('DELETE FROM posts WHERE id = ?', (post_id,))
+    conn.commit()
+    conn.close()
+
 
 def create_user(username, password):
     try:
@@ -334,12 +486,49 @@ def inject_nav_context():
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('index.html')
+    posts = get_posts(limit=5)
+    return render_template('index.html', posts=posts)
 
 
 @app.route('/home')
 def home_redirect():
-    return render_template('index.html')
+    posts = get_posts(limit=5)
+    return render_template('index.html', posts=posts)
+
+
+@app.route('/post/create', methods=['POST'])
+def create_post_route():
+    """Create a new announcement (admin/owner only)."""
+    actor = session.get('user')
+    actor_role = (session.get('role') or 'member').lower()
+    
+    if not actor or actor_role not in ('admin', 'owner'):
+        abort(403)
+    
+    title = request.form.get('title', '').strip()
+    content = request.form.get('content', '').strip()
+    
+    if not title or not content:
+        flash('Title and content are required')
+        return redirect(url_for('index'))
+    
+    create_post(actor, title, content)
+    flash('Post created')
+    return redirect(url_for('index'))
+
+
+@app.route('/post/<int:post_id>/delete', methods=['POST'])
+def delete_post_route(post_id):
+    """Delete a post (admin/owner only)."""
+    actor = session.get('user')
+    actor_role = (session.get('role') or 'member').lower()
+    
+    if not actor or actor_role not in ('admin', 'owner'):
+        abort(403)
+    
+    delete_post(post_id)
+    flash('Post deleted')
+    return redirect(url_for('index'))
 
 
 @app.route('/search')
@@ -365,6 +554,30 @@ def search():
                     break
             u['avatar_url'] = avatar_url
     return render_template('search.html', query=q, users=users, packages=packages)
+
+
+@app.route('/api/package/<name>')
+def api_package(name):
+    """API endpoint to find a package by name for CLI downloads."""
+    if not name or not name.strip():
+        return jsonify({'error': 'Package name required'}), 400
+    
+    name = name.strip()
+    
+    # Look up package in database
+    pkg = get_package_by_name(name)
+    
+    if not pkg:
+        return jsonify({'error': 'Package not found', 'found': False}), 404
+    
+    return jsonify({
+        'found': True,
+        'name': pkg['name'],
+        'filename': pkg['filename'],
+        'username': pkg['username'],
+        'size': pkg['size'],
+        'download_url': f"/userfiles/{pkg['username']}/{pkg['filename']}"
+    })
 
 
 @app.route('/packages')
@@ -460,6 +673,7 @@ def upload():
             os.makedirs(user_public, exist_ok=True)
             dest = os.path.join(user_public, filename)
             file.save(dest)
+            register_package(user, filename)
         else:
             # store submissions under a per-user directory
             user = session.get('user')
@@ -721,6 +935,7 @@ def admin_accept():
     dst = os.path.join(dst_dir, filename)
     try:
         shutil.move(src, dst)
+        register_package(username, filename)
         flash('Accepted and published')
     except Exception:
         flash('Failed to publish')
@@ -781,6 +996,7 @@ def delete_user_file(username, filename):
     if os.path.isfile(requested_path):
         try:
             os.remove(requested_path)
+            unregister_package(username, filename)
             flash('Package deleted')
         except Exception:
             flash('Failed to delete package')
