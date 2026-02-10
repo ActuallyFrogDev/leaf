@@ -4,11 +4,9 @@
 
 Leaf is a package manager for Linux that is meant to be **simple, user-friendly, and easy-to-use.**
 
-**Leaf is a WIP Project and is currently in development.**
-
 ## Installation
 
-**NOTE: The only supported distros now are Arch, Debian, Ubuntu, and Nix. If you have a different distro, you will have to do a Manual Installation.**
+**NOTE: The only supported distros now are Arch, Debian, Ubuntu, Fedora, Opensuse, and Nix. If you have a different distro, you will have to do a Manual Installation.**
 
 Installation is as easy as just running this command in your Linux terminal:
 ```bash
