@@ -35,4 +35,12 @@ leaf grow <pkg>
 ```bash
 leaf uproot <pkg>
 ```
-**More functions coming soon!**
+### List installed packages
+```bash
+leaf list
+```
+
+### Reset leaf entirely
+```bash
+leaf reset
+```
